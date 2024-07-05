@@ -7,6 +7,11 @@ DROP TABLE IF EXISTS member;
 DROP TABLE IF EXISTS wallet;
 DROP TABLE IF EXISTS beer;
 DROP TABLE IF EXISTS beer_type;
+DROP TYPE  IF EXISTS user_level;
+
+
+
+CREATE TYPE user_level as enum('admin', 'user');
 
 
 CREATE TABLE wallet(
@@ -21,8 +26,10 @@ CREATE TABLE member(
     entry_date date NOT NULL,
     address varchar(255) DEFAULT NULL,
     phone_number varchar(255) DEFAULT NULL,
-    email varchar(255) DEFAULT NULL,
+    email varchar(255) NOT NULL,
+    password bytea NOT NULL,
     wallet_id integer references wallet(id),
+    level user_level NOT NULL,
     PRIMARY KEY(id)
 
 );
@@ -75,7 +82,11 @@ CREATE TABLE part_in_event(
 );
 
 CREATE TABLE sessions(
-    id serial,
+    id varchar(32),
     member_id integer references member(id),
     PRIMARY KEY(id)
 );
+
+INSERT INTO wallet (balance) VALUES(0);
+INSERT INTO member (id, fio, entry_date, email, password, wallet_id, level)
+VALUES (DEFAULT, 'admin', DATE'2001-09-29', 'admin@admin.ru', decode('5254665a5541636b94b63ab83bb6a172b7ad541ad1cbdcdb2e84e1b7ce6d2c521135852b9a7ffe9c','hex'), 1, 'admin');
