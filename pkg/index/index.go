@@ -13,4 +13,5 @@ func Index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/events/", http.StatusFound)
+
 }

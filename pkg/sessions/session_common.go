@@ -23,8 +23,9 @@ func SessionFromContext(ctx context.Context) (*Session, error) {
 }
 
 type Session struct {
-	UserID uint32
-	ID     string
+	UserID  uint32
+	ID      string
+	IsAdmin bool
 }
 
 type MemberInterface interface {
@@ -37,5 +38,5 @@ type SessionManager interface {
 	Create(http.ResponseWriter, MemberInterface) error
 	DestroyCurrent(http.ResponseWriter, *http.Request) error
 	DestroyAll(http.ResponseWriter, MemberInterface) error
-	CheckAdmin(r *http.Request) bool
+	CheckAdmin(session *Session) bool
 }

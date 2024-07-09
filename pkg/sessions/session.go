@@ -21,6 +21,8 @@ func NewSessionsDB(db *sql.DB) *SessionsDB {
 
 func (sm *SessionsDB) Check(r *http.Request) (*Session, error) {
 	sessionCookie, err := r.Cookie("session_id")
+	log.Println("SessionCookie", sessionCookie)
+
 	if err == http.ErrNoCookie {
 		log.Println("CheckSession no cookie")
 		return nil, ErrNoAuth
@@ -88,9 +90,24 @@ func (sm *SessionsDB) DestroyAll(w http.ResponseWriter, user MemberInterface) er
 	return nil
 }
 
-func (sm *SessionsDB) CheckAdmin(r *http.Request) bool {
+func (sm *SessionsDB) CheckAdmin(session *Session) bool {
 
 	result := false
+	row := sm.DB.QueryRow(
+		`select id, level 
+		from member 
+		where id = $1`, session.UserID)
+	var level string
+	var id int
+	err := row.Scan(&id, &level)
 
+	if err != nil {
+		log.Println("Check Admin: ", err)
+		return false
+	}
+
+	if level == "admin" {
+		result = true
+	}
 	return result
 }

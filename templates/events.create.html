@@ -1,0 +1,55 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=9">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Любители пива</title>
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  </head>
+  <body>
+    
+    {{ template "navbar" . }}
+    <h2 align="center">Создание мероприятия</h2>
+    <div>
+        <form role="form" method="post" action="/events/create" >
+            <div class="col-md-4">
+                <div class="form-group" >
+                    <label for="event_name" style="font-size: 16px;">Название мероприятия</label>
+                    <input id="event_name" type="text" class="form-control" name="name" placeholder="Название" required> <br>
+                </div>    
+                <div class="form-group">
+                    <label for="date" style="font-size: 16px;">Дата проведения</label>
+                    <input id="date" type="date" class="form-control" name="date"  placeholder="Дата проведения" required>
+                </div>
+                <div class="form-group">
+                    <label for="location" style="font-size: 16px;">Место проведения</label>
+                    <input id="location" type="text" class="form-control" name="location" placeholder="Местопроведения">
+                </div> 
+                <div class="form-group">
+                    <label for="description" style="font-size: 16px;">Описание мероприятия</label>
+                    <input id="description" type="text" class="form-control" name="description" placeholder="Описание мероприятия">
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <!-- <br> align-content: flex-end;-->
+                        <button class="btn btn-lg btn-primary btn-block" type="submit">Создать</button>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <div style=" margin: 10px auto;">
+                            <a class="lead pull-right" href="/events/">Назад</a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </form>
+    </div>
+    <script src="/static/js/jquery-2.1.1.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+  </body>
+</html>

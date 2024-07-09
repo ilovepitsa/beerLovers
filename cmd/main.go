@@ -2,7 +2,7 @@ package main
 
 import (
 	"database/sql"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 
@@ -37,14 +37,16 @@ func main() {
 	router.HandleFunc("/", index.Index)
 	router.HandleFunc("/user/login", mh.Login)
 	router.HandleFunc("/user/reg", mh.Registry)
+	router.HandleFunc("/user/logout", mh.Logout)
 	router.HandleFunc("/events/", eh.List)
+	router.HandleFunc("/events/create", eh.Create)
 
 	http.Handle("/", middleware.AuthMiddleware(sm, router))
 	http.Handle("/static/", http.FileServer(template.Assets))
 
 	f, _ := template.Assets.Open("/static/favicon.ico")
 	defer f.Close()
-	favicon, _ := ioutil.ReadAll(f)
+	favicon, _ := io.ReadAll(f)
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		w.Write(favicon)
 	})
