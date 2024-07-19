@@ -39,6 +39,7 @@ func main() {
 	router.HandleFunc("/user/reg", mh.Registry)
 	router.HandleFunc("/user/logout", mh.Logout)
 	router.HandleFunc("/events/", eh.List)
+	router.HandleFunc("/events/take_part", eh.TakePart)
 	router.HandleFunc("/events/create", eh.Create)
 
 	http.Handle("/", middleware.AuthMiddleware(sm, router))

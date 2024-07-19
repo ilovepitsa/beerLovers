@@ -1,0 +1,75 @@
+    <script type="text/javascript" src="/static/js/list.js">
+    </script>
+    <style>
+        .card{
+            width:350px;
+            max-width:350px; 
+            display: inline-block;
+            height: 250px;
+            max-height: 250px;
+            z-index: 2;  
+            border: 1px solid #333;
+            box-shadow: 8px 8px 5px #444;
+            padding: 8px 12px;
+            background-image: linear-gradient(180deg, #fff, #ddd 40%, #ccc);
+            place-items: flex-end normal ;
+            display: grid;
+            
+        }
+        .card-value{
+            text-align: right;
+        }
+
+        .card-header{
+            text-align: center;
+        }
+
+        .take-part-button{
+            place-self: end center;
+        }
+    </style>
+    <div class="container card">
+        <div class="row  align-items-center">
+            <div class="col-sm card-header">
+                    {{ .Name }}
+            </div>
+        </div>
+        <div class="row  align-items-center">
+            <div class="col-sm">
+                Дата проведения:
+            </div>
+            <div class="col-sm card-value" >
+                <span>
+                    {{ readableDate .Date }}
+                </span>
+            </div>
+        </div>
+        <div class="row  align-items-center">
+            <div class="col-sm">
+                <span>
+                    Место проведения:
+                </span>
+            </div>
+            <div class="col-sm card-value" >
+                <span>
+                    {{ .Location }}
+                </span>
+            </div>
+        </div>
+        <div class="row  align-items-center">
+            <div class="col-sm">
+                <span>
+                    Описание:
+                </span>
+            </div>
+            <div class="col-sm card-value" >
+                <span>
+                    {{ .Description }}
+                </span>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <span onclick="takePartClicked(this)" data-id="{{.Id}}" class="btn btn-sm btn-primary btn-block">Принять участие</span>
+        </div>
+    </div>
+

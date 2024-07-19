@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"log"
 	"net/http"
 
 	"github.com/ilovepitsa/beerLovers/pkg/sessions"
@@ -29,8 +28,6 @@ func AuthMiddleware(sm sessions.SessionManager, next http.Handler) http.Handler 
 			next.ServeHTTP(w, r)
 			return
 		}
-
-		log.Println("Next path: ", r.URL.Path)
 		sess, err := sm.Check(r)
 		if err != nil {
 			if err == sessions.ErrNoAuth {

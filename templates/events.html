@@ -12,15 +12,26 @@
   </head>
   <body>
     
-    {{ template "navbar" . }}
+    {{ template "navbar"}}
 
     <div class="container">
-    {{ if . }}
+      <div class="form-check form-check-inline">
+        <form method="post" role="form" action="/events/">
+            <div class="form-check form-check-inline" style="justify-content: space-between;">
+              <input type="checkbox" name="show_old" id="show_old"/>
+              <label class="form-check-label" for="show_old">Показать прошедшие</label>
+              <button class="btn btn-lg btn-primary btn-block" type="submit">Обновить</button>
+            </div>
+        </form>
+      </div>
+
+    {{ if .IsAdmin }}
       <a class="lead pull-right" href="/events/create">Создать мероприятие</a>
     {{end}}
-
-      
-    </div> <!-- /container -->
+    </div><br><br>
+    <div class="container-fluid" style="justify-content: space-evenly; justify-items: end; ">
+      {{.Rows}}
+    </div> 
     
     <script src="/static/js/jquery-2.1.1.min.js"></script>
     <script src="/static/js/bootstrap.min.js"></script>

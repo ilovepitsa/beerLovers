@@ -21,7 +21,6 @@ func NewSessionsDB(db *sql.DB) *SessionsDB {
 
 func (sm *SessionsDB) Check(r *http.Request) (*Session, error) {
 	sessionCookie, err := r.Cookie("session_id")
-	log.Println("SessionCookie", sessionCookie)
 
 	if err == http.ErrNoCookie {
 		log.Println("CheckSession no cookie")
