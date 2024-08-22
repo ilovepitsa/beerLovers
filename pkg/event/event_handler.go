@@ -44,7 +44,7 @@ func NewEventHander(DB *sql.DB, Tmpls *template.Template, SM sessions.SessionMan
 	}
 }
 
-func (eh *EventHandler) formatTableList(events []Event) template.HTML {
+func (eh *EventHandler) formatTableList(events []eventViewData) template.HTML {
 	var rowsHTML strings.Builder
 	// rowsHTML.WriteString("<div class='row'>")
 	log.Printf("Found %v events\n", len(events))
@@ -68,6 +68,10 @@ func (eh *EventHandler) formatTableList(events []Event) template.HTML {
 	return template.HTML(rowsHTML.String())
 }
 
+func (eh *EventHandler) getUserPartition(userID uint32, events []Event) {
+
+}
+
 func (eh *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 	showOld := false
 	if r.Method == http.MethodPost {
@@ -82,6 +86,7 @@ func (eh *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 		log.Println("Event handler cant get session: ", err)
 	}
 	events, err := eh.getAllEvents(showOld)
+	// eventsList, err :=
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Event get err: ", http.StatusInternalServerError)
@@ -98,8 +103,8 @@ func (eh *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (eh *EventHandler) getAllEvents(showOld bool) ([]Event, error) {
-	events := []Event{}
+func (eh *EventHandler) getAllEvents(showOld bool) ([]eventViewData, error) {
+	events := []eventViewData{}
 
 	trans, err := eh.DB.Begin()
 
@@ -110,9 +115,29 @@ func (eh *EventHandler) getAllEvents(showOld bool) ([]Event, error) {
 	previosDay := currentTime.AddDate(0, 0, -1)
 	var result *sql.Rows
 	if showOld {
-		result, err = trans.Query("select id, name, date, location, description from events order by date;")
+		result, err = trans.Query(`
+								select e.id, e.name, e.date, e.location, e.description, 
+								    case 
+								        when pie.member_id is NULL then false
+								        else true 
+								    end as IsTakePart,
+								    case 
+								        when e.date > CURRENT_DATE - INTEGER '1' then false
+								        else true
+								    end as IsExpired
+								from events as e left join part_in_event as pie on e.id = pie.event_id order by e.date;`)
 	} else {
-		result, err = trans.Query("select id, name, date, location, description from events where date > $1 order by date;", previosDay)
+		result, err = trans.Query(`
+								select e.id, e.name, e.date, e.location, e.description, 
+								    case 
+								        when pie.member_id is NULL then false
+								        else true 
+								    end as IsTakePart,
+								    case 
+								        when e.date > CURRENT_DATE - INTEGER '1' then false
+								        else true
+								    end as IsExpired
+								from events as e left join part_in_event as pie on e.id = pie.event_id where e.date > $1 order by e.date;`, previosDay)
 	}
 
 	if err != nil {
@@ -120,8 +145,8 @@ func (eh *EventHandler) getAllEvents(showOld bool) ([]Event, error) {
 	}
 
 	for result.Next() {
-		e := Event{}
-		err = result.Scan(&e.Id, &e.Name, &e.Date, &e.Location, &e.Description)
+		e := eventViewData{}
+		err = result.Scan(&e.Event.Id, &e.Event.Name, &e.Event.Date, &e.Event.Location, &e.Event.Description, &e.IsTakePart, &e.IsExpired)
 		if err != nil {
 			return nil, err
 		}
@@ -237,7 +262,7 @@ func (eh *EventHandler) updateParticipation(id, vote int, userID uint32) error {
 	}
 
 	if vote >= 0 {
-		_, err = trans.Exec(`insert ignore into part_in_event (member_id, event_id) values ($1, $2)`, userID, id)
+		_, err = trans.Exec(`insert into part_in_event (member_id, event_id) values ($1, $2) ON CONFLICT (member_id, event_id) DO NOTHING`, userID, id)
 	} else {
 		_, err = trans.Exec(`delete from part_in_event where event_id = $1 and member_id = $2`, id, userID)
 	}

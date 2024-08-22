@@ -13,15 +13,19 @@
   <body>
     
     {{ template "navbar"}}
-
+    <br>
     <div class="container">
       <div class="form-check form-check-inline">
         <form method="post" role="form" action="/events/">
             <div class="form-check form-check-inline" style="justify-content: space-between;">
               <input type="checkbox" name="show_old" id="show_old"/>
               <label class="form-check-label" for="show_old">Показать прошедшие</label>
+            </div>
+            
+            <div class="form-check form-check-inline" style="justify-content: space-between;">
               <button class="btn btn-lg btn-primary btn-block" type="submit">Обновить</button>
             </div>
+
         </form>
       </div>
 
