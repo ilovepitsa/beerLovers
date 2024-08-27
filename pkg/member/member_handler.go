@@ -187,3 +187,12 @@ func (mh *MemberHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	mh.SM.DestroyCurrent(w, r)
 	http.Redirect(w, r, "/user/login", http.StatusFound)
 }
+
+func (mh *MemberHandler) Profile(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "wrong method", http.StatusMethodNotAllowed)
+		return
+	}
+	sess, _ := sessions.SessionFromContext(r.Context())
+	log.Println(sess.UserID)
+}

@@ -41,6 +41,7 @@ func main() {
 	router.HandleFunc("/events/", eh.List)
 	router.HandleFunc("/events/take_part", eh.TakePart)
 	router.HandleFunc("/events/create", eh.Create)
+	router.HandleFunc("/user/", mh.Profile)
 
 	http.Handle("/", middleware.AuthMiddleware(sm, router))
 	http.Handle("/static/", http.FileServer(template.Assets))
