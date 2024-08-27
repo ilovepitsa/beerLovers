@@ -84,6 +84,7 @@ func (eh *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Println("Event handler cant get session: ", err)
+		http.Error(w, "cant get session", http.StatusInternalServerError)
 	}
 	events, err := eh.getAllEvents(showOld)
 	// eventsList, err :=
