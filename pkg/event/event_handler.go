@@ -86,7 +86,7 @@ func (eh *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 		log.Println("Event handler cant get session: ", err)
 		http.Error(w, "cant get session", http.StatusInternalServerError)
 	}
-	events, err := eh.getAllEvents(showOld)
+	events, err := eh.getAllEvents(showOld, sess.UserID)
 	// eventsList, err :=
 	if err != nil {
 		log.Println(err)
@@ -104,7 +104,7 @@ func (eh *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (eh *EventHandler) getAllEvents(showOld bool) ([]eventViewData, error) {
+func (eh *EventHandler) getAllEvents(showOld bool, userId uint32) ([]eventViewData, error) {
 	events := []eventViewData{}
 
 	trans, err := eh.DB.Begin()
@@ -120,25 +120,27 @@ func (eh *EventHandler) getAllEvents(showOld bool) ([]eventViewData, error) {
 								select e.id, e.name, e.date, e.location, e.description, 
 								    case 
 								        when pie.member_id is NULL then false
-								        else true 
+										when pie.member_id = $1 then true
+								        else false 
 								    end as IsTakePart,
 								    case 
 								        when e.date > CURRENT_DATE - INTEGER '1' then false
 								        else true
 								    end as IsExpired
-								from events as e left join part_in_event as pie on e.id = pie.event_id order by e.date;`)
+								from events as e left join part_in_event as pie on e.id = pie.event_id order by e.date;`, userId)
 	} else {
 		result, err = trans.Query(`
 								select e.id, e.name, e.date, e.location, e.description, 
 								    case 
 								        when pie.member_id is NULL then false
-								        else true 
+								        when pie.member_id = $1 then true
+								        else false
 								    end as IsTakePart,
 								    case 
 								        when e.date > CURRENT_DATE - INTEGER '1' then false
 								        else true
 								    end as IsExpired
-								from events as e left join part_in_event as pie on e.id = pie.event_id where e.date > $1 order by e.date;`, previosDay)
+								from events as e left join part_in_event as pie on e.id = pie.event_id where e.date > $2 order by e.date;`, userId, previosDay)
 	}
 
 	if err != nil {

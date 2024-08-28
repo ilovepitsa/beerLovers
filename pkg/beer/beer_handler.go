@@ -28,18 +28,12 @@ func NewBeerHandler(DB *sql.DB, Tmpls *template.Template, SM sessions.SessionMan
 }
 
 func (bh *BeerHandler) formatTableList(beer []Beer) string {
-
+	return ""
 }
 
 func (bh *BeerHandler) List(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-
-	}
-}
-
-func (bh *BeerHandler) AddBeer(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "wornd method", http.StatusMethodNotAllowed)
+		http.Error(w, `wrong method`, http.StatusMethodNotAllowed)
 		return
 	}
 	tmpl := bh.Tmpls.Lookup("beer.html")
@@ -63,6 +57,15 @@ func (bh *BeerHandler) AddBeer(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
+
+}
+
+func (bh *BeerHandler) AddBeer(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "wornd method", http.StatusMethodNotAllowed)
+		return
+	}
+
 }
 
 func (bh *BeerHandler) getBeer() ([]Beer, error) {

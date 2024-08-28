@@ -8,6 +8,7 @@ import (
 
 	"github.com/gorilla/mux"
 	middleware "github.com/ilovepitsa/beerLovers/pkg/MiddleWare"
+	"github.com/ilovepitsa/beerLovers/pkg/beer"
 	"github.com/ilovepitsa/beerLovers/pkg/event"
 	"github.com/ilovepitsa/beerLovers/pkg/index"
 	"github.com/ilovepitsa/beerLovers/pkg/member"
@@ -17,7 +18,7 @@ import (
 )
 
 func main() {
-	connStr := "host=localhost port=5432 user=nikita password=12345 dbname=beer_lovers_party sslmode=disable"
+	connStr := "host=localhost port=5433 user=nikita password=12345 dbname=beer_lovers_party sslmode=disable"
 	// connectDB := "user=nikita port=5432 password=12345 dbname=beer_lovers_party sslmode=disable host=localhost"
 
 	db, err := sql.Open("postgres", connStr)
@@ -30,7 +31,7 @@ func main() {
 	sm := sessions.NewSessionsDB(db)
 
 	mh := member.NewMemberHandler(db, tmpls, sm)
-
+	bh := beer.NewBeerHandler(db, tmpls, sm)
 	eh := event.NewEventHander(db, tmpls, sm)
 
 	router := mux.NewRouter()
@@ -42,6 +43,7 @@ func main() {
 	router.HandleFunc("/events/take_part", eh.TakePart)
 	router.HandleFunc("/events/create", eh.Create)
 	router.HandleFunc("/user/", mh.Profile)
+	router.HandleFunc("/beer/", bh.List)
 
 	http.Handle("/", middleware.AuthMiddleware(sm, router))
 	http.Handle("/static/", http.FileServer(template.Assets))

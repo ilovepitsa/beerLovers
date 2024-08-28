@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"log"
 	"net/http"
 
 	"github.com/ilovepitsa/beerLovers/pkg/sessions"
@@ -38,6 +39,7 @@ func AuthMiddleware(sm sessions.SessionManager, next http.Handler) http.Handler 
 			return
 		}
 		sess.IsAdmin = sm.CheckAdmin(sess)
+		log.Println("User with id: ", sess.UserID)
 		ctx := context.WithValue(r.Context(), sessions.SessionKey, sess)
 		next.ServeHTTP(w, r.WithContext(ctx))
 
