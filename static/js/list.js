@@ -22,3 +22,20 @@ function takePartClicked(elem) {
     request.send();
     
 }
+
+
+
+function uploadPhoto(uid) {
+    var form = new FormData(document.getElementById('add_beer'))
+    var request = new XMLHttpRequest();
+    request.open('POST', '/beer/create', true);
+    request.onload = function() {
+        var resp = JSON.parse(request.responseText);
+        if(resp.error) {
+            console.log("rateComment server err:", resp.err);
+            return;
+        }
+        
+    };
+    request.send(form);
+}

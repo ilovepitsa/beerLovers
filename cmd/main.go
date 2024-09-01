@@ -18,7 +18,7 @@ import (
 )
 
 func main() {
-	connStr := "host=localhost port=5433 user=nikita password=12345 dbname=beer_lovers_party sslmode=disable"
+	connStr := "host=localhost port=5432 user=nikita password=12345 dbname=beer_lovers_party sslmode=disable"
 	// connectDB := "user=nikita port=5432 password=12345 dbname=beer_lovers_party sslmode=disable host=localhost"
 
 	db, err := sql.Open("postgres", connStr)
@@ -46,6 +46,12 @@ func main() {
 	router.HandleFunc("/beer/", bh.List)
 
 	http.Handle("/", middleware.AuthMiddleware(sm, router))
+	imageHandler := http.StripPrefix(
+		"/images/",
+		http.FileServer(http.Dir("./beer_images")),
+	)
+
+	http.Handle("/images/", imageHandler)
 	http.Handle("/static/", http.FileServer(template.Assets))
 
 	f, _ := template.Assets.Open("/static/favicon.ico")

@@ -39,7 +39,6 @@ CREATE TABLE member(
 CREATE TABLE beer_type(
     id serial,
     beer_type varchar(255) NOT NULL,
-    description text DEFAULT NULL,
     PRIMARY KEY(id)
 );
 
