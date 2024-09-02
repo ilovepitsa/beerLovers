@@ -26,11 +26,11 @@
                     <input id="producer" type="text" class="form-control" name="producer"  placeholder="Производитель" required>
                 </div>
                 <div class="form-group">
-                    <label for="beer_type" style="font-size: 16px;">Место проведения</label>
-                    <input id="beer_type" type="text" class="form-control" name="beer_type" placeholder="Вид пива" list="beer_types">
-                    <datalist id="beer_types">
+                    <label for="beer_types" style="font-size: 16px;">Вид пива</label>
+                    <!-- <input id="beer_type" type="text" class="form-control" name="beer_type" placeholder="Вид пива" list="beer_types"> -->
+                    <select id="beer_types">
                         {{ .Options}}
-                    </datalist>
+                    </select>
                 </div> 
                 <div class="form-group">
                     <label for="logo" style="font-size: 16px;">Изображение</label>

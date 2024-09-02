@@ -38,7 +38,7 @@ CREATE TABLE member(
 
 CREATE TABLE beer_type(
     id serial,
-    beer_type varchar(255) NOT NULL,
+    type_name varchar(255) NOT NULL,
     PRIMARY KEY(id)
 );
 
@@ -92,7 +92,18 @@ INSERT INTO member (id, fio, entry_date, email, password, wallet_id, level)
 VALUES (DEFAULT, 'admin', DATE'2001-09-29', 'admin@admin.ru', decode('5254665a5541636b94b63ab83bb6a172b7ad541ad1cbdcdb2e84e1b7ce6d2c521135852b9a7ffe9c','hex'), 1, 'admin');
 
 
---  | Владивосток | Даша какаша
 insert into events (name, date, location, description) values ('Приветственная вечеринка', '2024-08-01', 'Дом', 'Приветственная вечеринка для новичков');  
 insert into events (name, date, location, description) values ('ВВВ', '2002-04-30', 'Владивосток', 'Вечеринка во Владивостоке');  
 insert into events (name, date, location, description) values ('МММ', '2024-09-29', 'Москва', 'Московская Мужская Мочиловка');  
+insert into beer_type (type_name) values ('Пейл-эль'),
+('Пшеничный эль'),
+('Бельгийский эль'),
+('Кислый эль'),
+('Бурый эль'),
+('Портер'),
+('Стаут'),
+('Светлый лагер'),
+('Темный лагер'),
+('Бок'),
+('Янтарное пиво'),
+('Специальный сорт');
