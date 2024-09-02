@@ -47,6 +47,7 @@ CREATE TABLE beer(
     name varchar(255) NOT NULL,
     producer varchar(255) NOT NULL,
     beer_type integer references beer_type(id),
+    photo_url text,
     PRIMARY KEY(id)
 );
 
