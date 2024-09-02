@@ -8,13 +8,12 @@ import (
 	"html/template"
 	"io"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/ilovepitsa/beerLovers/pkg/sessions"
+	randstring "github.com/ilovepitsa/beerLovers/pkg/uitls/randString"
 )
 
 type Beer struct {
@@ -38,8 +37,25 @@ func NewBeerHandler(DB *sql.DB, Tmpls *template.Template, SM sessions.SessionMan
 	}
 }
 
-func (bh *BeerHandler) formatTableList(beer []Beer) string {
-	return ""
+func (bh *BeerHandler) formatTableList(beer []Beer) template.HTML {
+	strB := strings.Builder{}
+
+	for i, b := range beer {
+		if i%4 == 0 {
+			if i != 0 {
+				strB.WriteString("</div><br>")
+			}
+			strB.WriteString("<div class='row '>")
+		}
+		strB.WriteString("<div class='col-sm-auto' style='max-width: max-content;'>")
+		tmpl := bh.Tmpls.Lookup("beer.card.html")
+		err := tmpl.Execute(&strB, b)
+		if err != nil {
+			log.Println("Error while executing eventCard: ", err)
+		}
+		strB.WriteString("</div>")
+	}
+	return template.HTML(strB.String())
 }
 
 func (bh *BeerHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -126,13 +142,19 @@ func (bh *BeerHandler) AddBeer(w http.ResponseWriter, r *http.Request) {
 
 	uploadData, _, err := r.FormFile("logo")
 	if err != nil {
-		http.Error(w, fmt.Sprintf("cant parse file %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("cant parse file %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 	defer uploadData.Close()
-	name := r.FormValue("beer_name")
-	producer := r.FormValue("producer")
-	beer_type := r.FormValue("beer_types")
+	err = r.ParseForm()
+	if err != nil {
+		http.Error(w, "cant parse form", http.StatusInternalServerError)
+	}
+
+	name := r.PostFormValue("beer_name")
+	producer := r.PostFormValue("producer")
+	beer_type := r.PostFormValue("beer_types")
+	log.Println("Beer type: ", beer_type)
 
 	md5Sum, err := saveFile(uploadData)
 	if err != nil {
@@ -164,7 +186,7 @@ func (bh *BeerHandler) saveBeer(b Beer) error {
 		return err
 	}
 	res := 0
-	err = trans.QueryRow("insert into beer (name, producer, beer_type, photo_url) values ($1, $2, $3, $4) returning1;", b.Name, b.Producer, beer_id, b.Url).Scan(&res)
+	err = trans.QueryRow("insert into beer (name, producer, beer_type, photo_url) values ($1, $2, $3, $4) returning 1;", b.Name, b.Producer, beer_id, b.Url).Scan(&res)
 	if err != nil {
 		trans.Rollback()
 		return err
@@ -181,14 +203,9 @@ func (bh *BeerHandler) saveBeer(b Beer) error {
 }
 
 func saveFile(in io.Reader) (string, error) {
-	s := rand.NewSource(time.Now().Unix())
-	r := rand.New(s)
-	b := make([]byte, 32)
+	tmpName := randstring.RandStringRunes(32)
 
-	if _, err := r.Read(b); err != nil {
-		return "", err
-	}
-	tmpFile := "./images/" + string(b) + ".jpg"
+	tmpFile := "./images/" + tmpName + ".jpg"
 	newFile, err := os.Create(tmpFile)
 	if err != nil {
 		return "", err
@@ -214,6 +231,27 @@ func saveFile(in io.Reader) (string, error) {
 }
 
 func (bh *BeerHandler) getBeer() ([]Beer, error) {
+	trans, err := bh.DB.Begin()
+	if err != nil {
+		trans.Rollback()
+		return nil, err
+	}
 
-	return nil, nil
+	res, err := trans.Query("select b.name, b.producer, bt.type_name, b.photo_url from beer as b, beer_type as bt where b.beer_type = bt.id;")
+	if err != nil {
+		trans.Rollback()
+		return nil, err
+	}
+
+	beers := []Beer{}
+	for res.Next() {
+		beer := Beer{}
+		err = res.Scan(&beer.Name, &beer.Producer, &beer.BeerType, &beer.Url)
+		if err != nil {
+			log.Println(err)
+		}
+		beers = append(beers, beer)
+	}
+
+	return beers, nil
 }
