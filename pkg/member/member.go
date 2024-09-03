@@ -13,6 +13,7 @@ type Member struct {
 	PhoneNumber sql.NullString
 	Email       string
 	Wallet_id   int
+	Balance     int
 	User_level  string `sql:"type:user_level"`
 }
 

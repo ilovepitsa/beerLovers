@@ -188,6 +188,14 @@ func (mh *MemberHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/user/login", http.StatusFound)
 }
 
+func (mh *MemberHandler) getUserInfo(uid uint32) Member{
+	trans, err := mh.DB.Begin()
+	if err != nil {
+		trans.Rollback()
+	}
+
+}
+
 func (mh *MemberHandler) Profile(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "wrong method", http.StatusMethodNotAllowed)
@@ -195,4 +203,7 @@ func (mh *MemberHandler) Profile(w http.ResponseWriter, r *http.Request) {
 	}
 	sess, _ := sessions.SessionFromContext(r.Context())
 	log.Println(sess.UserID)
+	data := map[string]interface{}{
+		"User": 
+	}
 }
