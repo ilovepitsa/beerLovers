@@ -6,14 +6,14 @@ import (
 )
 
 type Member struct {
-	Id          int
-	FIO         string
+	Id int
+	string
 	Entry_Date  time.Time
 	Address     sql.NullString
 	PhoneNumber sql.NullString
 	Email       string
 	Wallet_id   int
-	Balance     int
+	Balance     float32
 	User_level  string `sql:"type:user_level"`
 }
 

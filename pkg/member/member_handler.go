@@ -188,11 +188,23 @@ func (mh *MemberHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/user/login", http.StatusFound)
 }
 
-func (mh *MemberHandler) getUserInfo(uid uint32) Member{
+func (mh *MemberHandler) getUserInfo(uid uint32) (*Member, error) {
 	trans, err := mh.DB.Begin()
 	if err != nil {
 		trans.Rollback()
+		return nil, err
 	}
+	res := trans.QueryRow("select m.fio, m.entry_date, m.address, m.phone_number, "+
+		"m.email, m.wallet_id, w.balance from member as m, wallet as w where m.id = $1 and m.wallet_id = w.id", uid)
+
+	m := &Member{}
+	err = res.Scan(&m.FIO, &m.Entry_Date, &m.Address, &m.PhoneNumber, &m.Email, &m.Wallet_id, &m.Balance)
+	if err != nil {
+		trans.Rollback()
+		return nil, err
+	}
+	trans.Commit()
+	return m, nil
 
 }
 
@@ -203,7 +215,17 @@ func (mh *MemberHandler) Profile(w http.ResponseWriter, r *http.Request) {
 	}
 	sess, _ := sessions.SessionFromContext(r.Context())
 	log.Println(sess.UserID)
-	data := map[string]interface{}{
-		"User": 
+	userInfo, err := mh.getUserInfo(sess.UserID)
+	if err != nil {
+		http.Error(w, "cant get user info", http.StatusInternalServerError)
+		log.Println(err)
+		return
 	}
+	data := map[string]interface{}{
+		"User": userInfo,
+	}
+	tmpls := mh.Tmpls.Lookup("profile.html")
+
+	err = tmpls.Execute(w, data)
+	log.Println(err)
 }
