@@ -6,8 +6,8 @@ import (
 )
 
 type Member struct {
-	Id int
-	string
+	Id          int
+	FIO         string
 	Entry_Date  time.Time
 	Address     sql.NullString
 	PhoneNumber sql.NullString
@@ -17,6 +17,7 @@ type Member struct {
 	User_level  string `sql:"type:user_level"`
 }
 
+// ₽
 func (m *Member) GetID() int {
 	return m.Id
 }

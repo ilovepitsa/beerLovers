@@ -39,3 +39,21 @@ function uploadPhoto(uid) {
     };
     request.send(form);
 }
+
+
+
+function checkBalance(uid, elem) {
+    request = new XMLHttpRequest();
+    request.Open('GET', 'user/getBalance?uid='+uid, true)
+
+
+    request.onload = function () {
+        var resp = JSON.parse(request.responseText)
+    }
+
+    if(resp.error) {
+        console.log("renderPhotos server err:", resp.err);
+        return;
+    }
+    
+}
