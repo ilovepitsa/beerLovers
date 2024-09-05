@@ -57,6 +57,7 @@ CREATE TABLE events(
     date date NOT NULL,
     location text DEFAULT NULL,
     description text DEFAULT NULL,
+    cost numeric(15,2) DEFAULT 0.00,
     PRIMARY KEY(id)
 );
 

@@ -17,6 +17,7 @@ type Member struct {
 	User_level  string `sql:"type:user_level"`
 }
 
+// ₽
 func (m *Member) GetID() int {
 	return m.Id
 }

@@ -8,9 +8,11 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/ilovepitsa/beerLovers/pkg/sessions"
+	httputils "github.com/ilovepitsa/beerLovers/pkg/uitls/httpUtils"
 	randstring "github.com/ilovepitsa/beerLovers/pkg/uitls/randString"
 	"golang.org/x/crypto/argon2"
 )
@@ -245,4 +247,46 @@ func (mh *MemberHandler) Profile(w http.ResponseWriter, r *http.Request) {
 
 	err = tmpls.Execute(w, data)
 	log.Println(err)
+}
+
+func (mh *MemberHandler) getUserBalance(uid uint32) (float32, error) {
+	trans, err := mh.DB.Begin()
+	if err != nil {
+		trans.Rollback()
+		return 0, err
+	}
+	var balance float32
+	err = trans.QueryRow("Select w.balance from wallet as w, member as m where m.id = $1 and m.wallet_id = w.id", uid).Scan(&balance)
+	if err != nil {
+		trans.Rollback()
+		return 0, err
+	}
+
+	trans.Commit()
+	return balance, nil
+
+}
+
+func (mh *MemberHandler) CheckBalance(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		httputils.RespJSONError(w, http.StatusMethodNotAllowed, fmt.Errorf("wrong method"), "internal")
+		return
+	}
+
+	id, err := strconv.ParseUint(r.FormValue("uid"), 10, 32)
+	if err != nil {
+		httputils.RespJSONError(w, http.StatusBadRequest, nil, "bad id")
+		return
+	}
+
+	balance, err := mh.getUserBalance(uint32(id))
+	if err != nil {
+		httputils.RespJSONError(w, http.StatusBadRequest, err, fmt.Sprintf("cant get user balance: %v", err))
+		return
+	}
+
+	httputils.RespJSON(w, map[string]interface{}{
+		"balance": balance,
+	})
+
 }

@@ -31,7 +31,7 @@
     <div class="container card">
         <div class="row  align-items-center">
             <div class="col-sm card-header">
-                    {{ .Event.Name }}
+                    {{ .Element.Event.Name }}
             </div>
         </div>
         <div class="row  align-items-center">
@@ -40,7 +40,7 @@
             </div>
             <div class="col-sm card-value" >
                 <span>
-                    {{ readableDate .Event.Date }}
+                    {{ readableDate .Element.Event.Date }}
                 </span>
             </div>
         </div>
@@ -52,7 +52,7 @@
             </div>
             <div class="col-sm card-value" >
                 <span>
-                    {{ .Event.Location }}
+                    {{ .Element.Event.Location }}
                 </span>
             </div>
         </div>
@@ -64,12 +64,12 @@
             </div>
             <div class="col-sm card-value overflow-hidden" >
                 <span>
-                    {{ .Event.Description }}
+                    {{ .Element.Event.Description }}
                 </span>
             </div>
         </div>
         <div class="container-fluid">
-            <button onclick="takePartClicked(this)" data-id="{{.Event.Id}}" class="btn btn-sm btn-primary btn-block {{if .IsTakePart}} btn-success {{end}}" {{ if .IsExpired }} disabled {{end}}>Принять участие</span>
+            <button onload="checkBalance('{{.UserID}}', this)" onclick="takePartClicked(this)" value="" data-id="{{.Element.Event.Id}}" class="btn btn-sm btn-primary btn-block {{if .Element.IsTakePart}} btn-success {{end}}" {{ if .Element.IsExpired }} disabled {{end}}>Принять участие</span>
         </div>
     </div>
 

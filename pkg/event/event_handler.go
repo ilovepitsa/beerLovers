@@ -44,7 +44,7 @@ func NewEventHander(DB *sql.DB, Tmpls *template.Template, SM sessions.SessionMan
 	}
 }
 
-func (eh *EventHandler) formatTableList(events []eventViewData) template.HTML {
+func (eh *EventHandler) formatTableList(uid uint32, events []eventViewData) template.HTML {
 	var rowsHTML strings.Builder
 	// rowsHTML.WriteString("<div class='row'>")
 	log.Printf("Found %v events\n", len(events))
@@ -57,8 +57,11 @@ func (eh *EventHandler) formatTableList(events []eventViewData) template.HTML {
 		}
 		rowsHTML.WriteString("<div class='col-sm-auto' style='max-width: max-content;'>")
 		tmpl := eh.Tmpls.Lookup("eventsCard.html")
-
-		err := tmpl.Execute(&rowsHTML, elem)
+		data := map[string]interface{}{
+			"UserId":  uid,
+			"Element": elem,
+		}
+		err := tmpl.Execute(&rowsHTML, data)
 		if err != nil {
 			log.Println("Error while executing eventCard: ", err)
 		}
@@ -68,9 +71,9 @@ func (eh *EventHandler) formatTableList(events []eventViewData) template.HTML {
 	return template.HTML(rowsHTML.String())
 }
 
-func (eh *EventHandler) getUserPartition(userID uint32, events []Event) {
+// func (eh *EventHandler) getUserPartition(userID uint32, events []Event) {
 
-}
+// }
 
 func (eh *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 	showOld := false
@@ -95,7 +98,7 @@ func (eh *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 	input := map[string]interface{}{
 		"IsAdmin": sess.IsAdmin,
-		"Rows":    eh.formatTableList(events),
+		"Rows":    eh.formatTableList(sess.UserID, events),
 	}
 
 	err = tmpl.Execute(w, input)
