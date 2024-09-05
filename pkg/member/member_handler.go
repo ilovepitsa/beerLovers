@@ -21,6 +21,15 @@ var (
 	errUserExists = errors.New("user exists")
 )
 
+type userViewData struct {
+	FIO         string
+	Entry_Date  time.Time
+	Address     sql.NullString
+	PhoneNumber sql.NullString
+	Email       string
+	Balance     string
+}
+
 type MemberHandler struct {
 	DB    *sql.DB
 	Tmpls *template.Template
@@ -188,7 +197,7 @@ func (mh *MemberHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/user/login", http.StatusFound)
 }
 
-func (mh *MemberHandler) getUserInfo(uid uint32) (*Member, error) {
+func (mh *MemberHandler) getUserInfo(uid uint32) (*userViewData, error) {
 	trans, err := mh.DB.Begin()
 	if err != nil {
 		trans.Rollback()
@@ -204,7 +213,15 @@ func (mh *MemberHandler) getUserInfo(uid uint32) (*Member, error) {
 		return nil, err
 	}
 	trans.Commit()
-	return m, nil
+	vd := &userViewData{
+		FIO:         m.FIO,
+		Entry_Date:  m.Entry_Date,
+		Address:     m.Address,
+		PhoneNumber: m.PhoneNumber,
+		Email:       m.Email,
+		Balance:     fmt.Sprintf("%.2f", m.Balance),
+	}
+	return vd, nil
 
 }
 

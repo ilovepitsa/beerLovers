@@ -6,8 +6,8 @@ import (
 )
 
 type Member struct {
-	Id int
-	string
+	Id          int
+	FIO         string
 	Entry_Date  time.Time
 	Address     sql.NullString
 	PhoneNumber sql.NullString
@@ -22,8 +22,5 @@ func (m *Member) GetID() int {
 }
 
 func (m *Member) IsAdmin() bool {
-	if m.User_level == "admin" {
-		return true
-	}
-	return false
+	return m.User_level == "admin"
 }
