@@ -49,11 +49,13 @@ function checkBalance(uid, elem) {
 
     request.onload = function () {
         var resp = JSON.parse(request.responseText)
-    }
+        if(resp.error) {
+            console.log("renderPhotos server err:", resp.err);
+            return;
+        }
 
-    if(resp.error) {
-        console.log("renderPhotos server err:", resp.err);
-        return;
+        if (resp.body.balance )
+
     }
     
 }

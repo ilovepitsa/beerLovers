@@ -24,12 +24,10 @@ var (
 )
 
 type userViewData struct {
-	FIO         string
-	Entry_Date  time.Time
-	Address     sql.NullString
-	PhoneNumber sql.NullString
-	Email       string
-	Balance     string
+	FIO        string
+	Entry_Date time.Time
+	Email      string
+	Balance    string
 }
 
 type MemberHandler struct {
@@ -205,23 +203,21 @@ func (mh *MemberHandler) getUserInfo(uid uint32) (*userViewData, error) {
 		trans.Rollback()
 		return nil, err
 	}
-	res := trans.QueryRow("select m.fio, m.entry_date, m.address, m.phone_number, "+
+	res := trans.QueryRow("select m.fio, m.entry_date, "+
 		"m.email, m.wallet_id, w.balance from member as m, wallet as w where m.id = $1 and m.wallet_id = w.id", uid)
 
 	m := &Member{}
-	err = res.Scan(&m.FIO, &m.Entry_Date, &m.Address, &m.PhoneNumber, &m.Email, &m.Wallet_id, &m.Balance)
+	err = res.Scan(&m.FIO, &m.Entry_Date, &m.Email, &m.Wallet_id, &m.Balance)
 	if err != nil {
 		trans.Rollback()
 		return nil, err
 	}
 	trans.Commit()
 	vd := &userViewData{
-		FIO:         m.FIO,
-		Entry_Date:  m.Entry_Date,
-		Address:     m.Address,
-		PhoneNumber: m.PhoneNumber,
-		Email:       m.Email,
-		Balance:     fmt.Sprintf("%.2f", m.Balance),
+		FIO:        m.FIO,
+		Entry_Date: m.Entry_Date,
+		Email:      m.Email,
+		Balance:    fmt.Sprintf("%.2f", m.Balance),
 	}
 	return vd, nil
 
