@@ -26,8 +26,6 @@ CREATE TABLE member(
     id serial,
     fio varchar(255) NOT NULL,
     entry_date date NOT NULL,
-    address varchar(255) DEFAULT NULL,
-    phone_number varchar(255) DEFAULT NULL,
     email varchar(255) NOT NULL,
     password bytea NOT NULL,
     wallet_id integer references wallet(id),
