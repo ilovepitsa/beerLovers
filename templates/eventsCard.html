@@ -68,7 +68,16 @@
             </div>
         </div>
         <div class="container-fluid">
-            <button onload="checkBalance('{{.UserID}}', this)" onclick="takePartClicked(this)" value="" data-id="{{.Element.Event.Id}}" class="btn btn-sm btn-primary btn-block {{if .Element.IsTakePart}} btn-success {{end}}" {{ if .Element.IsExpired }} disabled {{end}}>Принять участие</span>
+            <button id="button{{.Element.Event.Id}}" onclick="takePartClicked('{{.Element.EventCostPrint}}',this)" data-id="{{.Element.Event.Id}}" class="btn btn-sm btn-primary btn-block {{if .Element.IsTakePart}} btn-success {{end}}" {{ if .Element.IsExpired }} disabled {{end}}>Принять участие {{.Element.EventCostPrint}} ₽</span>
+            <script type="text/javascript" >
+                var button = document.getElementById('button{{.Element.Event.Id}}');
+                var current_userID = '{{.UserId}}'; 
+                var takenPart = '{{.Element.IsTakePart}}';
+                var cost = '{{.Element.Event.Cost}}';
+                console.log(takenPart)
+                checkBalance(current_userID, cost, button);
+            </script>
         </div>
+
     </div>
 

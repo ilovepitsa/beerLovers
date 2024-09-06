@@ -263,12 +263,11 @@ func (mh *MemberHandler) getUserBalance(uid uint32) (float32, error) {
 
 }
 
-func (mh *MemberHandler) CheckBalance(w http.ResponseWriter, r *http.Request) {
+func (mh *MemberHandler) Balance(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		httputils.RespJSONError(w, http.StatusMethodNotAllowed, fmt.Errorf("wrong method"), "internal")
 		return
 	}
-
 	id, err := strconv.ParseUint(r.FormValue("uid"), 10, 32)
 	if err != nil {
 		httputils.RespJSONError(w, http.StatusBadRequest, nil, "bad id")
