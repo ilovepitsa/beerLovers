@@ -39,7 +39,6 @@ function uploadPhoto(uid) {
 
 
 function checkBalance(uid, cost,  elem) {
-    console.log("uid: " + uid)
     request = new XMLHttpRequest();
     if (elem.classList.contains('btn-success')) {
         return;
@@ -51,7 +50,7 @@ function checkBalance(uid, cost,  elem) {
         
         var resp = JSON.parse(request.responseText);
         if(resp.error) {
-            console.log("renderPhotos server err:", resp.err);
+            console.log("checkBalance server err:", resp.err);
             return;
         }
 
@@ -63,16 +62,49 @@ function checkBalance(uid, cost,  elem) {
         }
         elem.classList.remove('btn-warning');
         elem.classList.remove('disabled');
-
+        
     }
 
     request.onerror = function() {
-        console.log("checkBalance  error", request.responseText)
+        console.log("checkBalance  error", request.responseText);
     }
     request.send();
 }
 
 
-function addMoney(amount, userId) {
+function addMoney(userId) {
+    var form = new FormData(document.getElementById('refill'));
+    var request = new XMLHttpRequest();
+    request.open('POST', '/api/v1/user/balance', true)
+    request.onload = function () {
+        var resp = JSON.parse(request.responseText)
+        if (resp.error) {
+            console.log("addMoney err: ", resp.err)
+            return
+        }
 
+        updateBalance(userId)
+    }
+    request.send(form)
+
+}
+
+function updateBalance(uid) {
+    var request = new XMLHttpRequest();
+    request.open('GET','/api/v1/user/balance', true);
+
+    request.onload = function() {
+        var resp = JSON.parse(request.responseText);
+        if(resp.error) {
+            console.log("update balance server err: ", resp.err);
+            return;
+        }
+        var elem = document.getElementById('balance');
+        elem.textContent = resp.body.balance.toFixed(2)  + " ₽";
+    }
+    request.onerror = function() {
+        console.log("updateBalance  error", request.responseText);
+    }
+
+    request.send();
 }

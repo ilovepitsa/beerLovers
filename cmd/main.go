@@ -18,7 +18,7 @@ import (
 )
 
 func main() {
-	connStr := "host=localhost port=5433 user=nikita password=12345 dbname=beer_lovers_party sslmode=disable"
+	connStr := "host=localhost port=5432 user=nikita password=12345 dbname=beer_lovers_party sslmode=disable"
 	// connectDB := "user=nikita port=5432 password=12345 dbname=beer_lovers_party sslmode=disable host=localhost"
 
 	db, err := sql.Open("postgres", connStr)

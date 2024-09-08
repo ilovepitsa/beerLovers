@@ -231,9 +231,9 @@ func (eh *EventHandler) createEvent(name, date, location, cost, description stri
 		return nil, err
 	}
 	log.Println(`insert into events (name, date, location, description, cost) 
-	values ($1, $2, $3, $4) RETURNING id;`, event.Name, event.Date, event.Location, event.Description, event.Cost)
+	values ($1, $2, $3, $4, $5) RETURNING id;`, event.Name, event.Date, event.Location, event.Description, event.Cost)
 	err = trans.QueryRow(`insert into events (name, date, location, description, cost) 
-	values ($1, $2, $3, $4) RETURNING id;`, event.Name, event.Date, event.Location, event.Description, event.Cost).Scan(&event.Id)
+	values ($1, $2, $3, $4, $5) RETURNING id;`, event.Name, event.Date, event.Location, event.Description, event.Cost).Scan(&event.Id)
 	if err != nil {
 		trans.Rollback()
 		return nil, err

@@ -214,6 +214,7 @@ func (mh *MemberHandler) getUserInfo(uid uint32) (*userViewData, error) {
 	}
 	trans.Commit()
 	vd := &userViewData{
+
 		FIO:        m.FIO,
 		Entry_Date: m.Entry_Date,
 		Email:      m.Email,
@@ -223,12 +224,63 @@ func (mh *MemberHandler) getUserInfo(uid uint32) (*userViewData, error) {
 
 }
 
+func (mh *MemberHandler) updateName(uid uint32, newName string) error {
+	trans, err := mh.DB.Begin()
+	if err != nil {
+		return err
+	}
+	res := 0
+	err = trans.QueryRow(`update member set fio = $1 where id = $2 returning 1;`, newName, uid).Scan(&res)
+	if err != nil {
+		return err
+	}
+	if res != 1 {
+		return fmt.Errorf("error while updating")
+	}
+	return nil
+}
+
+func (mh *MemberHandler) updateEmail(uid uint32, newEmail string) error {
+	trans, err := mh.DB.Begin()
+	if err != nil {
+		return err
+	}
+	res := 0
+	err = trans.QueryRow(`update member set email = $1 where id = $2 returning 1;`, newName, uid).Scan(&res)
+	if err != nil {
+		return err
+	}
+	if res != 1 {
+		return fmt.Errorf("error while updating")
+	}
+	return nil
+}
+
 func (mh *MemberHandler) Profile(w http.ResponseWriter, r *http.Request) {
+	sess, _ := sessions.SessionFromContext(r.Context())
+	if r.Method == http.MethodPost {
+		name := r.FormValue("username")
+		email := r.FormValue("email")
+		if name != "" {
+			err := mh.updateName(sess.UserID, name)
+			if err != nil {
+				httputils.RespJSONError(w, http.StatusInternalServerError, err, "cant update name")
+			}
+		}
+		if email != "" {
+			err := mh.updateEmail(sess.UserID, email)
+			if err != nil {
+				httputils.RespJSONError(w, http.StatusInternalServerError, err, "cant update email")
+			}
+		}
+
+		return
+	}
+
 	if r.Method != http.MethodGet {
 		http.Error(w, "wrong method", http.StatusMethodNotAllowed)
 		return
 	}
-	sess, _ := sessions.SessionFromContext(r.Context())
 	log.Println(sess.UserID)
 	userInfo, err := mh.getUserInfo(sess.UserID)
 	if err != nil {
@@ -237,7 +289,8 @@ func (mh *MemberHandler) Profile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data := map[string]interface{}{
-		"User": userInfo,
+		"User":   userInfo,
+		"UserId": sess.UserID,
 	}
 	tmpls := mh.Tmpls.Lookup("profile.html")
 
@@ -263,18 +316,54 @@ func (mh *MemberHandler) getUserBalance(uid uint32) (float32, error) {
 
 }
 
+func (mh *MemberHandler) refill(userId uint32, amount float32) error {
+	trans, err := mh.DB.Begin()
+	if err != nil {
+		trans.Rollback()
+		return err
+	}
+
+	res := 0
+	err = trans.QueryRow(`update wallet set balance = balance + $1 where id = ( select wallet_id from member where id = $2) RETURNING 1;`, amount, userId).Scan(&res)
+	if err != nil {
+		trans.Rollback()
+		return err
+	}
+	trans.Commit()
+	return nil
+}
+
 func (mh *MemberHandler) Balance(w http.ResponseWriter, r *http.Request) {
+	sess, _ := sessions.SessionFromContext(r.Context())
+	if r.Method == http.MethodPost {
+		amount, err := strconv.ParseFloat(r.FormValue("amount"), 32)
+		if err != nil {
+			httputils.RespJSONError(w, http.StatusBadRequest, err, "wrong amount")
+			return
+		}
+		if amount < 0 {
+			httputils.RespJSONError(w, http.StatusBadRequest, err, "wrong amount")
+			return
+		}
+		err = mh.refill(sess.UserID, float32(amount))
+		if err != nil {
+			httputils.RespJSONError(w, http.StatusBadRequest, err, "internal")
+			return
+		}
+		// http.Redirect(w, r, "/user/profile", http.StatusFound)
+
+		httputils.RespJSON(w, map[string]interface{}{
+			"ok": "ok",
+		})
+		return
+	}
+
 	if r.Method != http.MethodGet {
 		httputils.RespJSONError(w, http.StatusMethodNotAllowed, fmt.Errorf("wrong method"), "internal")
 		return
 	}
-	id, err := strconv.ParseUint(r.FormValue("uid"), 10, 32)
-	if err != nil {
-		httputils.RespJSONError(w, http.StatusBadRequest, nil, "bad id")
-		return
-	}
 
-	balance, err := mh.getUserBalance(uint32(id))
+	balance, err := mh.getUserBalance(sess.UserID)
 	if err != nil {
 		httputils.RespJSONError(w, http.StatusBadRequest, err, fmt.Sprintf("cant get user balance: %v", err))
 		return

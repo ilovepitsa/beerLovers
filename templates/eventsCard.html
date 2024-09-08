@@ -72,9 +72,7 @@
             <script type="text/javascript" >
                 var button = document.getElementById('button{{.Element.Event.Id}}');
                 var current_userID = '{{.UserId}}'; 
-                var takenPart = '{{.Element.IsTakePart}}';
                 var cost = '{{.Element.Event.Cost}}';
-                console.log(takenPart)
                 checkBalance(current_userID, cost, button);
             </script>
         </div>
