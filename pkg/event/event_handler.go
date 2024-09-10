@@ -51,7 +51,7 @@ func NewEventHander(DB *sql.DB, Tmpls *template.Template, SM sessions.SessionMan
 func (eh *EventHandler) formatTableList(uid uint32, events []eventViewData) template.HTML {
 	var rowsHTML strings.Builder
 	// rowsHTML.WriteString("<div class='row'>")
-	log.Printf("Found %v events\n", len(events))
+
 	for index, elem := range events {
 		if index%4 == 0 {
 			if index != 0 {
@@ -304,4 +304,62 @@ func (eh *EventHandler) updateParticipation(id, vote int, cost float32, userID u
 
 	trans.Commit()
 	return nil
+}
+
+func (eh *EventHandler) getUsersParticipants(eventId uint32) ([]string, error) {
+	ans := []string{}
+	trans, err := eh.DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+	res, err := trans.Query(`select member.fio from member left join part_in_event on member.id = part_in_event.member_id where part_in_event.event_id = $1;`, eventId)
+	if err != nil {
+		return nil, err
+	}
+
+	for res.Next() {
+		var fio string
+		res.Scan(&fio)
+		ans = append(ans, fio)
+	}
+
+	return ans, nil
+}
+
+func (eh *EventHandler) userList(usersName []string) template.HTML {
+	var rowsHTML strings.Builder
+	rowsHTML.WriteString(`<ul class="list-group">`)
+	for _, name := range usersName {
+		rowsHTML.WriteString(fmt.Sprintf(`	<li class="list-group-item">%s</li>%s`, name, "\n"))
+	}
+	rowsHTML.WriteString(`</ul>`)
+	return template.HTML(rowsHTML.String())
+}
+
+func (eh *EventHandler) Participants(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		httputils.RespJSONError(w, http.StatusMethodNotAllowed, nil, "bad method")
+		return
+	}
+
+	eventId, err := strconv.ParseUint(r.FormValue("eid"), 10, 32)
+	if err != nil {
+		httputils.RespJSONError(w, http.StatusInternalServerError, err, "bad eid")
+		return
+	}
+	userNames, err := eh.getUsersParticipants(uint32(eventId))
+	if err != nil {
+		httputils.RespJSONError(w, http.StatusInternalServerError, err, "cant get users names")
+		return
+	}
+	data := map[string]interface{}{
+		"ListUsers": eh.userList(userNames),
+	}
+
+	tmpl := eh.Tmpls.Lookup("participants.html")
+
+	err = tmpl.Execute(w, data)
+	if err != nil {
+		log.Println(err)
+	}
 }

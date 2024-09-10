@@ -2,7 +2,6 @@ package httputils
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 )
@@ -17,7 +16,6 @@ func RespJSON(w http.ResponseWriter, body interface{}) {
 	respJSON, _ := json.Marshal(&MyResponse{
 		Body: body,
 	})
-	fmt.Println(string(respJSON))
 	w.Write(respJSON)
 }
 

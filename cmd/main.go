@@ -18,7 +18,7 @@ import (
 )
 
 func main() {
-	connStr := "host=localhost port=5432 user=nikita password=12345 dbname=beer_lovers_party sslmode=disable"
+	connStr := "host=localhost port=5433 user=nikita password=12345 dbname=beer_lovers_party sslmode=disable"
 	// connectDB := "user=nikita port=5432 password=12345 dbname=beer_lovers_party sslmode=disable host=localhost"
 
 	db, err := sql.Open("postgres", connStr)
@@ -39,6 +39,7 @@ func main() {
 	router.HandleFunc("/user/login", mh.Login)
 	router.HandleFunc("/user/reg", mh.Registry)
 	router.HandleFunc("/user/logout", mh.Logout)
+	router.HandleFunc("/events/participants", eh.Participants)
 	router.HandleFunc("/events/", eh.List)
 	router.HandleFunc("/events/take_part", eh.TakePart)
 	router.HandleFunc("/events/create", eh.Create)

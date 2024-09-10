@@ -246,7 +246,7 @@ func (mh *MemberHandler) updateEmail(uid uint32, newEmail string) error {
 		return err
 	}
 	res := 0
-	err = trans.QueryRow(`update member set email = $1 where id = $2 returning 1;`, newName, uid).Scan(&res)
+	err = trans.QueryRow(`update member set email = $1 where id = $2 returning 1;`, newEmail, uid).Scan(&res)
 	if err != nil {
 		return err
 	}
