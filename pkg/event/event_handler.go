@@ -48,9 +48,8 @@ func NewEventHander(DB *sql.DB, Tmpls *template.Template, SM sessions.SessionMan
 	}
 }
 
-func (eh *EventHandler) formatTableList(uid uint32, events []eventViewData) template.HTML {
+func (eh *EventHandler) formatTableList(sess sessions.Session, events []eventViewData) template.HTML {
 	var rowsHTML strings.Builder
-	// rowsHTML.WriteString("<div class='row'>")
 
 	for index, elem := range events {
 		if index%4 == 0 {
@@ -62,8 +61,9 @@ func (eh *EventHandler) formatTableList(uid uint32, events []eventViewData) temp
 		rowsHTML.WriteString("<div class='col-sm-auto' style='max-width: max-content;'>")
 		tmpl := eh.Tmpls.Lookup("eventsCard.html")
 		data := map[string]interface{}{
-			"UserId":  uid,
+			"UserId":  sess.UserID,
 			"Element": elem,
+			"IsAdmin": sess.IsAdmin,
 		}
 		err := tmpl.Execute(&rowsHTML, data)
 		if err != nil {
@@ -74,10 +74,6 @@ func (eh *EventHandler) formatTableList(uid uint32, events []eventViewData) temp
 
 	return template.HTML(rowsHTML.String())
 }
-
-// func (eh *EventHandler) getUserPartition(userID uint32, events []Event) {
-
-// }
 
 func (eh *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 	showOld := false
@@ -103,7 +99,7 @@ func (eh *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 	log.Println("Current user id: ", sess.UserID)
 	input := map[string]interface{}{
 		"IsAdmin": sess.IsAdmin,
-		"Rows":    eh.formatTableList(sess.UserID, events),
+		"Rows":    eh.formatTableList(*sess, events),
 	}
 
 	err = tmpl.Execute(w, input)

@@ -77,7 +77,10 @@
             </script>
         </div>
         <div class="container-fluid text-right">
-            <a href="/events/participants?eid={{.Element.Event.Id}}">Участники</a>
+            <a  href="/events/participants?eid={{.Element.Event.Id}}">Участники</a>
+            {{if .IsAdmin}}
+            <button onclick="deleteEvent('{{.Element.Event.Id}}')" type="button" style=" margin-bottom: 4px;" class="btn btn-link">Удалить</button>
+            {{end}}
         </div>
 
     </div>

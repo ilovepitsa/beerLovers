@@ -108,3 +108,8 @@ function updateBalance(uid) {
 
     request.send();
 }
+
+
+function deleteEvent(eid) {
+
+}
