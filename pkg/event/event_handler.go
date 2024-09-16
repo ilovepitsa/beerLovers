@@ -60,6 +60,7 @@ func (eh *EventHandler) formatTableList(sess sessions.Session, events []eventVie
 		}
 		rowsHTML.WriteString("<div class='col-sm-auto' style='max-width: max-content;'>")
 		tmpl := eh.Tmpls.Lookup("eventsCard.html")
+		log.Println("Event with id = ", elem.Event.Id)
 		data := map[string]interface{}{
 			"UserId":  sess.UserID,
 			"Element": elem,
@@ -175,8 +176,11 @@ func (eh *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method != http.MethodPost {
+		data := map[string]interface{}{
+			"IsAdmin": sess.IsAdmin,
+		}
 		tmpl := eh.Tmpls.Lookup("events.create.html")
-		tmpl.Execute(w, nil)
+		tmpl.Execute(w, data)
 		return
 	}
 
@@ -348,8 +352,11 @@ func (eh *EventHandler) Participants(w http.ResponseWriter, r *http.Request) {
 		httputils.RespJSONError(w, http.StatusInternalServerError, err, "cant get users names")
 		return
 	}
+
+	sess, _ := sessions.SessionFromContext(r.Context())
 	data := map[string]interface{}{
 		"ListUsers": eh.userList(userNames),
+		"IsAdmin":   sess.IsAdmin,
 	}
 
 	tmpl := eh.Tmpls.Lookup("participants.html")
@@ -357,5 +364,42 @@ func (eh *EventHandler) Participants(w http.ResponseWriter, r *http.Request) {
 	err = tmpl.Execute(w, data)
 	if err != nil {
 		log.Println(err)
+	}
+}
+
+func (eh *EventHandler) deleteEvent(uid uint32) error {
+	trans, err := eh.DB.Begin()
+	if err != nil {
+		trans.Rollback()
+		return err
+	}
+	_, err = trans.Exec(`delete from events where id = $1`, uid)
+	if err != nil {
+		trans.Rollback()
+		return err
+	}
+	trans.Commit()
+	return nil
+}
+
+func (eh *EventHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		httputils.RespJSONError(w, http.StatusMethodNotAllowed, nil, "bad method")
+		return
+	}
+	sess, _ := sessions.SessionFromContext(r.Context())
+	if !sess.IsAdmin {
+		httputils.RespJSONError(w, http.StatusMethodNotAllowed, nil, "internal")
+		return
+	}
+	uid, err := strconv.ParseUint(r.FormValue("uid"), 10, 32)
+	if err != nil {
+		httputils.RespJSONError(w, http.StatusMethodNotAllowed, nil, "bad uid")
+		return
+	}
+	err = eh.deleteEvent(uint32(uid))
+	if err != nil {
+		httputils.RespJSONError(w, http.StatusMethodNotAllowed, nil, "bad uid")
+		return
 	}
 }

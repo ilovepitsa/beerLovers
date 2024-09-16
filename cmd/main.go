@@ -40,11 +40,14 @@ func main() {
 	router.HandleFunc("/user/reg", mh.Registry)
 	router.HandleFunc("/user/logout", mh.Logout)
 	router.HandleFunc("/events/participants", eh.Participants)
-	router.HandleFunc("/events/", eh.List)
+	router.HandleFunc("/events/", eh.List) ///users/
 	router.HandleFunc("/events/take_part", eh.TakePart)
 	router.HandleFunc("/events/create", eh.Create)
 	router.HandleFunc("/user/", mh.Profile)
+	router.HandleFunc("/users/", mh.UsersList)
 	router.HandleFunc("/api/v1/user/balance", mh.Balance)
+	router.HandleFunc("/api/v1/user/delete", mh.DeleteUser)
+	router.HandleFunc("/api/v1/event/delete", eh.DeleteEvent)
 	router.HandleFunc("/beer/", bh.List)
 	router.HandleFunc("/beer/create", bh.AddBeer)
 

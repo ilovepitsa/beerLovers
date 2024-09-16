@@ -1,8 +1,6 @@
 DROP INDEX IF EXISTS idx_part_in_event_mid_eid;
 DROP TABLE IF EXISTS part_in_event;
 DROP TABLE IF EXISTS sessions;
-DROP TABLE IF EXISTS membership_fee;
-DROP TABLE IF EXISTS donations;
 DROP TABLE IF EXISTS events;
 DROP TABLE IF EXISTS member;
 DROP TABLE IF EXISTS wallet;
@@ -56,22 +54,6 @@ CREATE TABLE events(
     location text DEFAULT NULL,
     description text DEFAULT NULL,
     cost numeric(15,2) DEFAULT 0.00,
-    PRIMARY KEY(id)
-);
-
-CREATE TABLE membership_fee(
-    id serial,
-    member_id integer references member(id),
-    value numeric(15,2) NOT NULL,
-    date date NOT NULL,
-    PRIMARY KEY(id)
-);
-
-CREATE TABLE donations(
-    id serial,
-    member_id integer references member(id),
-    value numeric(15,2) NOT NULL,
-    date date NOT NULL,
     PRIMARY KEY(id)
 );
 

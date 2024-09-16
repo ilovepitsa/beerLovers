@@ -16,6 +16,11 @@
     </ul>
     <div class=" navbar-right">
       <ul class="navbar-nav mr-auto">
+        {{if .}}
+        <li class="nav-item">
+          <a class="nav-link" href="/users/">Список участников</a>
+        </li>
+        {{end}}
         <li class="nav-item">
           <a class="nav-link" href="/user/">Профиль</a>
         </li>

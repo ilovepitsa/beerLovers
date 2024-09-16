@@ -12,7 +12,7 @@
   </head>
   <body>
     
-    {{ template "navbar" . }}
+    {{ template "navbar" .IsAdmin }}
     <h2 align="center">Добавление пива</h2>
     <div class="container">
         <form id="add_beer" role="form" method="post" action="/beer/create" enctype="multipart/form-data">

@@ -28,5 +28,7 @@ func RespJSONError(w http.ResponseWriter, status int, err error, resp string) {
 	respJSON, _ := json.Marshal(&MyResponse{
 		Error: resp,
 	})
+
+	log.Println("JSON ERR: ", string(respJSON))
 	w.Write(respJSON)
 }

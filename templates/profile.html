@@ -16,7 +16,7 @@
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
   </head>
   <body>
-    {{ template "navbar"}}
+    {{ template "navbar" .IsAdmin }}
     <br>
     <div class="container-fluid">
         <h2>{{.User.FIO}}</h2>

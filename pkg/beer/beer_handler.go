@@ -130,8 +130,10 @@ func (bh *BeerHandler) getBeerType() ([]string, error) {
 func (bh *BeerHandler) AddBeer(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		tmpl := bh.Tmpls.Lookup("beer.create.html")
+		sess, _ := sessions.SessionFromContext(r.Context())
 		data := map[string]interface{}{
 			"Options": bh.getOptions(),
+			"IsAdmin": sess.IsAdmin,
 		}
 		tmpl.Execute(w, data)
 		return

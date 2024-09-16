@@ -111,5 +111,16 @@ function updateBalance(uid) {
 
 
 function deleteEvent(eid) {
+    var request = new XMLHttpRequest();
+    request.open('DELETE','/api/v1/event/delete?uid='+eid, true);
 
+
+    request.send();
+}
+
+function deleteUser(uid) {
+    var request = new XMLHttpRequest();
+    request.open('GET','/api/v1/user/delete?uid='+uid, true);
+
+    request.send();
 }

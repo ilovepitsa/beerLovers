@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ilovepitsa/beerLovers/pkg/sessions"
@@ -289,8 +290,9 @@ func (mh *MemberHandler) Profile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data := map[string]interface{}{
-		"User":   userInfo,
-		"UserId": sess.UserID,
+		"User":    userInfo,
+		"UserId":  sess.UserID,
+		"IsAdmin": sess.IsAdmin,
 	}
 	tmpls := mh.Tmpls.Lookup("profile.html")
 
@@ -373,4 +375,107 @@ func (mh *MemberHandler) Balance(w http.ResponseWriter, r *http.Request) {
 		"balance": balance,
 	})
 
+}
+
+func (mh *MemberHandler) getAllUsers() ([]Member, error) {
+	trans, err := mh.DB.Begin()
+	if err != nil {
+		trans.Rollback()
+		return nil, err
+	}
+	res, err := trans.Query(`select id, fio, entry_date, email from member`)
+	if err != nil {
+		trans.Rollback()
+		return nil, err
+	}
+	ans := []Member{}
+	for res.Next() {
+		m := Member{}
+		res.Scan(&m.Id, &m.FIO, &m.Entry_Date, &m.Email)
+		ans = append(ans, m)
+	}
+
+	trans.Commit()
+	return ans, nil
+}
+
+func (mh *MemberHandler) userList(users []Member) template.HTML {
+	var rowsHTML strings.Builder
+	rowsHTML.WriteString(`<ul class="list-group">`)
+	for _, user := range users {
+		rowsHTML.WriteString(fmt.Sprintf(`	
+		<li class="list-group-item">
+		%s   <button onclick="deleteEvent('%d')" type="button" style=" margin-bottom: 4px;" class="btn btn-link">Выгнать</button>
+		</li>
+		%s`, user.FIO, user.Id, "\n"))
+	}
+	rowsHTML.WriteString(`</ul>`)
+	return template.HTML(rowsHTML.String())
+}
+
+func (mh *MemberHandler) UsersList(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		httputils.RespJSONError(w, http.StatusMethodNotAllowed, nil, "bad method")
+		return
+	}
+	sess, _ := sessions.SessionFromContext(r.Context())
+	if !sess.IsAdmin {
+		httputils.RespJSONError(w, http.StatusMethodNotAllowed, nil, "internal")
+		return
+	}
+
+	users, err := mh.getAllUsers()
+	if err != nil {
+		httputils.RespJSONError(w, http.StatusMethodNotAllowed, err, "internal")
+		return
+	}
+
+	data := map[string]interface{}{
+		"UserList": mh.userList(users),
+		"IsAdmin":  sess.IsAdmin,
+	}
+
+	tmpl := mh.Tmpls.Lookup("user.list.html")
+
+	err = tmpl.Execute(w, data)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+func (mh *MemberHandler) deleteUser(uid uint32) error {
+	trans, err := mh.DB.Begin()
+	if err != nil {
+		trans.Rollback()
+		return err
+	}
+	_, err = trans.Exec(`delete from member where id = $1`, uid)
+	if err != nil {
+		trans.Rollback()
+		return err
+	}
+	trans.Commit()
+	return nil
+}
+
+func (mh *MemberHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		httputils.RespJSONError(w, http.StatusMethodNotAllowed, nil, "bad method")
+		return
+	}
+	sess, _ := sessions.SessionFromContext(r.Context())
+	if !sess.IsAdmin {
+		httputils.RespJSONError(w, http.StatusMethodNotAllowed, nil, "internal")
+		return
+	}
+	uid, err := strconv.ParseUint(r.FormValue("uid"), 10, 32)
+	if err != nil {
+		httputils.RespJSONError(w, http.StatusMethodNotAllowed, nil, "bad uid")
+		return
+	}
+	err = mh.deleteUser(uint32(uid))
+	if err != nil {
+		httputils.RespJSONError(w, http.StatusMethodNotAllowed, nil, "bad uid")
+		return
+	}
 }

@@ -14,14 +14,9 @@
     
     {{ template "navbar" .IsAdmin }}
     <br>
-    <div class="container-fluid">
-    {{ if .IsAdmin }}
-      <a class="lead pull-right" href="/beer/create">Добавить пиво</a>
-    {{end}}
-    </div>
-    <br><br>
+   
     <div class="container-fluid" style="justify-content: space-evenly; justify-items: end; ">
-      {{.Rows}}
+      {{.UserList}}
     </div> 
     
     <script src="/static/js/jquery-2.1.1.min.js"></script>
