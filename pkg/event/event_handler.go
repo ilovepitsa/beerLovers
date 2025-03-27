@@ -9,29 +9,37 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
+	"github.com/ilovepitsa/beerLovers/pkg/beer"
 	"github.com/ilovepitsa/beerLovers/pkg/sessions"
 	httputils "github.com/ilovepitsa/beerLovers/pkg/uitls/httpUtils"
+	"github.com/volatiletech/null"
 )
 
 // var (
 // 	errEventExists = errors.New("event exists")
 // )
 
+type Review struct {
+	MemberName string `json:"Reviewer"`
+	PhotoPath  string `json:"PhotoPath"`
+	Text       string `json:"Review"`
+}
+
 type Event struct {
 	Id          int
 	Name        string
 	Date        time.Time
 	Location    string
-	Cost        float32
 	Description string
 }
 
 type eventViewData struct {
-	Event          Event
-	IsExpired      bool
-	IsTakePart     bool
-	EventCostPrint string
+	Event       Event
+	IsExpired   bool
+	IsTakePart  bool
+	Responsible string
 }
 
 type EventHandler struct {
@@ -52,7 +60,7 @@ func (eh *EventHandler) formatTableList(sess sessions.Session, events []eventVie
 	var rowsHTML strings.Builder
 
 	for index, elem := range events {
-		if index%4 == 0 {
+		if index%2 == 0 {
 			if index != 0 {
 				rowsHTML.WriteString("</div><br>")
 			}
@@ -122,7 +130,7 @@ func (eh *EventHandler) getAllEvents(showOld bool, userId uint32) ([]eventViewDa
 	var result *sql.Rows
 	if showOld {
 		result, err = trans.Query(`
-								select e.id, e.name, e.date, e.location, e.description, e.cost,
+								select e.id, e.name, e.date, e.location, e.description,
 								    case 
 								        when pie.member_id is NULL then false
 										when pie.member_id = $1 then true
@@ -131,11 +139,12 @@ func (eh *EventHandler) getAllEvents(showOld bool, userId uint32) ([]eventViewDa
 								    case 
 								        when e.date > CURRENT_DATE - INTEGER '1' then false
 								        else true
-								    end as IsExpired
-								from events as e left join part_in_event as pie on e.id = pie.event_id order by e.date;`, userId)
+								    end as IsExpired,
+									m.fio
+								from member as m, events as e left join part_in_event as pie on e.id = pie.event_id where e.responsible = m.id order by e.date;`, userId)
 	} else {
 		result, err = trans.Query(`
-								select e.id, e.name, e.date, e.location, e.description, e.cost,
+								select e.id, e.name, e.date, e.location, e.description,
 								    case 
 								        when pie.member_id is NULL then false
 								        when pie.member_id = $1 then true
@@ -144,8 +153,9 @@ func (eh *EventHandler) getAllEvents(showOld bool, userId uint32) ([]eventViewDa
 								    case 
 								        when e.date > CURRENT_DATE - INTEGER '1' then false
 								        else true
-								    end as IsExpired
-								from events as e left join part_in_event as pie on e.id = pie.event_id where e.date > $2 order by e.date;`, userId, previosDay)
+								    end as IsExpired,
+									m.fio
+								from member as m, events as e left join part_in_event as pie on e.id = pie.event_id where e.date > $2 and e.responsible = m.id  order by e.date;`, userId, previosDay)
 	}
 
 	if err != nil {
@@ -154,8 +164,7 @@ func (eh *EventHandler) getAllEvents(showOld bool, userId uint32) ([]eventViewDa
 
 	for result.Next() {
 		e := eventViewData{}
-		err = result.Scan(&e.Event.Id, &e.Event.Name, &e.Event.Date, &e.Event.Location, &e.Event.Description, &e.Event.Cost, &e.IsTakePart, &e.IsExpired)
-		e.EventCostPrint = fmt.Sprintf("%.2f", e.Event.Cost)
+		err = result.Scan(&e.Event.Id, &e.Event.Name, &e.Event.Date, &e.Event.Location, &e.Event.Description, &e.IsTakePart, &e.IsExpired, &e.Responsible)
 		if err != nil {
 			return nil, err
 		}
@@ -188,9 +197,8 @@ func (eh *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 	date := r.FormValue("date")
 	location := r.FormValue("location")
 	description := r.FormValue("description")
-	cost := r.FormValue("cost")
 
-	event, err := eh.createEvent(name, date, location, cost, description)
+	event, err := eh.createEvent(name, date, location, description, sess.UserID)
 
 	switch err {
 	case nil:
@@ -204,7 +212,7 @@ func (eh *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/events/", http.StatusFound)
 }
 
-func (eh *EventHandler) createEvent(name, date, location, cost, description string) (*Event, error) {
+func (eh *EventHandler) createEvent(name, date, location, description string, responsible uint32) (*Event, error) {
 
 	t, err := time.Parse("2006-01-02", date)
 
@@ -212,16 +220,11 @@ func (eh *EventHandler) createEvent(name, date, location, cost, description stri
 		return nil, err
 	}
 
-	costF, err := strconv.ParseFloat(cost, 32)
-	if err != nil {
-		return nil, err
-	}
 	event := &Event{
 		Id:          0,
 		Name:        name,
 		Date:        t,
 		Location:    location,
-		Cost:        float32(costF),
 		Description: description,
 	}
 
@@ -230,10 +233,10 @@ func (eh *EventHandler) createEvent(name, date, location, cost, description stri
 		trans.Rollback()
 		return nil, err
 	}
-	log.Println(`insert into events (name, date, location, description, cost) 
-	values ($1, $2, $3, $4, $5) RETURNING id;`, event.Name, event.Date, event.Location, event.Description, event.Cost)
-	err = trans.QueryRow(`insert into events (name, date, location, description, cost) 
-	values ($1, $2, $3, $4, $5) RETURNING id;`, event.Name, event.Date, event.Location, event.Description, event.Cost).Scan(&event.Id)
+	log.Println(`insert into events (name, date, location, description, responsible) 
+	values ($1, $2, $3, $4, $5) RETURNING id;`, event.Name, event.Date, event.Location, event.Description, responsible)
+	err = trans.QueryRow(`insert into events (name, date, location, description, responsible) 
+	values ($1, $2, $3, $4, $5) RETURNING id;`, event.Name, event.Date, event.Location, event.Description, responsible).Scan(&event.Id)
 	if err != nil {
 		trans.Rollback()
 		return nil, err
@@ -263,13 +266,7 @@ func (eh *EventHandler) TakePart(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"err": "bad vote"}`, http.StatusBadRequest)
 		log.Println("Take part err: ", err)
 	}
-	cost, err := strconv.ParseFloat(r.FormValue("cost"), 32)
-	if err != nil {
-		httputils.RespJSONError(w, http.StatusBadRequest, err, "bad cost")
-		return
-	}
-
-	err = eh.updateParticipation(id, vote, float32(cost), sess.UserID)
+	err = eh.updateParticipation(id, vote, sess.UserID)
 
 	if err != nil {
 		http.Error(w, `{"err": "cant process part in event"}`, http.StatusInternalServerError)
@@ -278,7 +275,7 @@ func (eh *EventHandler) TakePart(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (eh *EventHandler) updateParticipation(id, vote int, cost float32, userID uint32) error {
+func (eh *EventHandler) updateParticipation(id, vote int, userID uint32) error {
 	trans, err := eh.DB.Begin()
 	if err != nil {
 		trans.Rollback()
@@ -295,13 +292,6 @@ func (eh *EventHandler) updateParticipation(id, vote int, cost float32, userID u
 		trans.Rollback()
 		return err
 	}
-	cost = cost * float32(vote)
-	_, err = trans.Exec(`update wallet set balance = balance - $1 where id = (select wallet_id from member where id = $2)`, cost, userID)
-	if err != nil {
-		trans.Rollback()
-		return err
-	}
-
 	trans.Commit()
 	return nil
 }
@@ -400,6 +390,102 @@ func (eh *EventHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 	err = eh.deleteEvent(uint32(uid))
 	if err != nil {
 		httputils.RespJSONError(w, http.StatusMethodNotAllowed, nil, "bad uid")
+		return
+	}
+}
+
+func (eh *EventHandler) addReview(r *http.Request) error {
+	eid, err := strconv.ParseUint(r.FormValue("eid"), 10, 32)
+	if err != nil {
+		return err
+	}
+	sess, _ := sessions.SessionFromContext(r.Context())
+
+	text := r.FormValue("review")
+
+	if utf8.RuneCountInString(text) < 10 {
+		return fmt.Errorf("review must contains at least 10 symbols")
+	}
+
+	photo, _, err := r.FormFile("messagePhoto")
+	if err != nil {
+		return err
+	}
+	defer photo.Close()
+	photoPath, err := beer.SaveFile(photo, false)
+	if err != nil {
+		return err
+	}
+
+	trans, err := eh.DB.Begin()
+	if err != nil {
+		trans.Rollback()
+		return err
+	}
+	id := 0
+	photourl := null.StringFrom(photoPath)
+	err = trans.QueryRow("insert into review (event_id, member_id, text, photo_url) values ($1, $2, $3) RETURNING id;", eid, sess.UserID, text, photourl).Scan(&id)
+	if err != nil {
+		trans.Rollback()
+		return err
+	}
+
+	trans.Commit()
+	return nil
+}
+
+func (eh *EventHandler) getReviewList(r *http.Request) ([]Review, error) {
+	eid, err := strconv.ParseUint(r.FormValue("eid"), 10, 32)
+	if err != nil {
+		return nil, err
+	}
+
+	trans, err := eh.DB.Begin()
+	if err != nil {
+		trans.Rollback()
+		return nil, err
+	}
+	res, err := trans.Query("select m.fio, r.text, r.photo_url from review as r, member as m where r.event_id = $1 and r.member_id = m.id order by r.id;", eid)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, err
+	}
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	var reviews []Review
+	for res.Next() {
+		review := Review{}
+		var photoUrl sql.NullString
+		res.Scan(&review.MemberName, &review.Text, &photoUrl)
+		if photoUrl.Valid {
+			review.PhotoPath = photoUrl.String
+		}
+		reviews = append(reviews, review)
+	}
+
+	return reviews, nil
+
+}
+
+func (eh *EventHandler) Review(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		err := eh.addReview(r)
+		if err != nil {
+			httputils.RespJSONError(w, http.StatusInternalServerError, err, "cant add review")
+		}
+		return
+	}
+
+	if r.Method == http.MethodGet {
+		reviews, err := eh.getReviewList(r)
+		if err != nil {
+			httputils.RespJSONError(w, http.StatusInternalServerError, err, "cant get review")
+			return
+		}
+		httputils.RespJSON(w, map[string]interface{}{
+			"reviews": reviews,
+		})
 		return
 	}
 }

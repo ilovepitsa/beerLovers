@@ -1,7 +1,7 @@
-function takePartClicked(cost, elem) {
+function takePartClicked(elem) {
     var id = elem.getAttribute('data-id');
     var vote = 0;
-    console.log(elem.outerHTML)
+    // console.log(elem.outerHTML)
     if (elem.classList.contains('disabled')) {
         return;
     }
@@ -14,7 +14,7 @@ function takePartClicked(cost, elem) {
     }
 
     var request = new XMLHttpRequest();
-    request.open('POST', '/events/take_part?id='+id+'&vote='+vote+'&cost='+cost,true);
+    request.open('POST', '/events/take_part?id='+id+'&vote='+vote,true);
     request.send();
     
 }
@@ -109,6 +109,14 @@ function updateBalance(uid) {
     request.send();
 }
 
+function changeLevel(uid, vote) {
+    var request = new XMLHttpRequest();
+    console.log(uid);
+    request.open('PUT','/api/v1/user/changeLevel?uid='+uid+'&vote='+vote, true);
+
+    request.send();
+}
+
 
 function deleteEvent(eid) {
     var request = new XMLHttpRequest();
@@ -120,7 +128,65 @@ function deleteEvent(eid) {
 
 function deleteUser(uid) {
     var request = new XMLHttpRequest();
-    request.open('GET','/api/v1/user/delete?uid='+uid, true);
+    request.open('DELETE','/api/v1/user/delete?uid='+uid, true);
 
     request.send();
+}
+
+function leaveFeedback(elem) {
+    var feedbackForm = document.getElementById('feedbackForm');
+    var formData = new FormData(feedbackForm); // Collect form data (including files)
+    var eid = elem.dataset.event_id;
+    
+    var request = new XMLHttpRequest();
+    request.open('POST', '/api/v1/event/review?eid=' + eid, true);
+
+    request.onload = function () {
+        $('#leaveFeedback').modal('hide');
+        // Optional: Show success message or reset the form
+        feedbackForm.reset();
+    };
+
+    request.send(formData); // Send FormData instead of plain text
+}
+
+function makeFavorite(elem) {
+    var id = elem.dataset.id;
+    var vote = 0;
+    if (elem.classList.contains('btn-danger')) {
+        elem.classList.remove('btn-danger');
+        elem.classList.add('btn-primary');
+
+        elem.textContent = 'Добавить в любимое';
+        vote = -1;
+    } else {
+        elem.classList.add('btn-danger');
+        elem.textContent = 'Любимое';
+        vote = 1;
+    }
+
+    var request = new XMLHttpRequest();
+    request.open('POST','/beer/make_favorite?id='+id+'&vote='+vote,true);
+    request.send();
+}
+
+
+function getBeerFavoriteReport() {
+    console.log('report!')
+    fetch('/api/v1/reports/beer_favorite')
+        .then(responce => responce.blob())
+        .then(blob =>{
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+
+            a.download = 'beer_favorite_report.csv'
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() =>{
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            },0); 
+        })
+        .catch(error => console.error('Ошибка скачивания файла: ',error));
 }

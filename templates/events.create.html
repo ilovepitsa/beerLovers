@@ -13,7 +13,7 @@
   <body>
     
     {{ template "navbar" .IsAdmin }}
-    <h2 align="center">Создание мероприятия</h2>
+    <h2 >Создание мероприятия</h2>
     <div class="container">
         <form role="form" method="post" action="/events/create" >
             <div class="col-md-4">
@@ -32,10 +32,6 @@
                 <div class="form-group">
                     <label for="description" style="font-size: 16px;">Описание мероприятия</label>
                     <input id="description" type="text" class="form-control" name="description" placeholder="Описание мероприятия">
-                </div>
-                <div class="form-group">
-                    <label for="cost" style="font-size: 16px;">Стоимость посещения</label>
-                    <input id="cost" type="number" class="form-control" name="cost" placeholder="Стоимость" required>
                 </div>
                 <div class="form-row">
                     <div class="form-group col-md-6">

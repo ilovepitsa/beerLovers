@@ -1,8 +1,8 @@
     <script type="text/javascript" src="/static/js/list.js"></script>
     <style>
         .card{
-            width:350px;
-            max-width:350px; 
+            width:500px;
+            max-width:500px; 
             display: inline-block;
             height: 250px;
             max-height: 250px;
@@ -58,30 +58,43 @@
         <div class="row  align-items-center">
             <div class="col-sm">
                 <span>
+                    Ответсвенный:
+                </span>
+            </div>
+            <div class="col-sm card-value overflow text-truncate" style="text-overflow: ellipsis;">
+                <span>
+                    {{ .Element.Responsible}}
+                </span>
+            </div>
+        </div>
+        <div class="row  align-items-center">
+            <div class="col-sm">
+                <span>
                     Описание:
                 </span>
             </div>
-            <div class="col-sm card-value overflow-hidden" >
+            <div class="col-sm card-value overflow text-truncate" style="text-overflow: ellipsis;">
                 <span>
                     {{ .Element.Event.Description }}
                 </span>
             </div>
         </div>
         <div class="container-fluid">
-            <button id="button{{.Element.Event.Id}}" onclick="takePartClicked('{{.Element.EventCostPrint}}',this)" data-id="{{.Element.Event.Id}}" class="btn btn-sm btn-primary btn-block {{if .Element.IsTakePart}} btn-success {{end}}" {{ if .Element.IsExpired }} disabled {{end}}>Принять участие {{.Element.EventCostPrint}} ₽</span>
-            <script type="text/javascript" >
-                var button = document.getElementById('button{{.Element.Event.Id}}');
-                var current_userID = '{{.UserId}}'; 
-                var cost = '{{.Element.Event.Cost}}';
-                checkBalance(current_userID, cost, button);
-            </script>
+            <button id="button{{.Element.Event.Id}}" onclick="takePartClicked(this)" data-id="{{.Element.Event.Id}}" class="btn btn-sm btn-primary btn-block {{if .Element.IsTakePart}} btn-success {{end}}" {{ if .Element.IsExpired }} disabled {{end}}>Принять участие</span>
         </div>
         <div class="container-fluid text-right">
             <a  href="/events/participants?eid={{.Element.Event.Id}}">Участники</a>
+            <button type="button" style=" margin-bottom: 4px;" class="btn btn-link" data-toggle="modal" data-target="#leaveFeedback" data-whatever="{{.Element.Event.Name}}" data-eventid="{{.Element.Event.Id}}">Оставить отзыв</button>
+            <button type="button" style=" margin-bottom: 4px;" class="btn btn-link" data-toggle="modal" data-target="#showFeedbacks" data-whatever="{{.Element.Event.Name}}" data-eventid="{{.Element.Event.Id}}">Отзывы</button>
             {{if .IsAdmin}}
             <button onclick="deleteEvent('{{.Element.Event.Id}}')" type="button" style=" margin-bottom: 4px;" class="btn btn-link">Удалить</button>
             {{end}}
         </div>
+
+
+
+
+
 
     </div>
 

@@ -167,22 +167,13 @@ func (mh *MemberHandler) createMember(login, passIn, fio string) (*Member, error
 		return nil, fmt.Errorf("db err  : %v", err)
 	}
 
-	var walletId int
-	err = trans.QueryRow(`insert into wallet (balance) values(0) RETURNING id;`).Scan(&walletId)
-	if err != nil {
-		trans.Rollback()
-
-		return nil, fmt.Errorf("cant create wallet : %v", err)
-	}
-
 	err = trans.QueryRow(`insert into member (id, fio, entry_date,
-	  email, password, wallet_id, level) 
-	 values (DEFAULT, $1, $2, $3, $4, $5, 'user') RETURNING id;`,
+	  email, password, level) 
+	 values (DEFAULT, $1, $2, $3, $4, 'user') RETURNING id;`,
 		member.FIO,
 		member.Entry_Date,
 		member.Email,
 		pass,
-		walletId,
 	).Scan(&member.Id)
 
 	if err != nil {
@@ -205,10 +196,10 @@ func (mh *MemberHandler) getUserInfo(uid uint32) (*userViewData, error) {
 		return nil, err
 	}
 	res := trans.QueryRow("select m.fio, m.entry_date, "+
-		"m.email, m.wallet_id, w.balance from member as m, wallet as w where m.id = $1 and m.wallet_id = w.id", uid)
+		"m.email from member as m where m.id = $1", uid)
 
 	m := &Member{}
-	err = res.Scan(&m.FIO, &m.Entry_Date, &m.Email, &m.Wallet_id, &m.Balance)
+	err = res.Scan(&m.FIO, &m.Entry_Date, &m.Email)
 	if err != nil {
 		trans.Rollback()
 		return nil, err
@@ -219,7 +210,6 @@ func (mh *MemberHandler) getUserInfo(uid uint32) (*userViewData, error) {
 		FIO:        m.FIO,
 		Entry_Date: m.Entry_Date,
 		Email:      m.Email,
-		Balance:    fmt.Sprintf("%.2f", m.Balance),
 	}
 	return vd, nil
 
@@ -383,7 +373,7 @@ func (mh *MemberHandler) getAllUsers() ([]Member, error) {
 		trans.Rollback()
 		return nil, err
 	}
-	res, err := trans.Query(`select id, fio, entry_date, email from member`)
+	res, err := trans.Query(`select id, fio, entry_date, email, level from member order by fio`)
 	if err != nil {
 		trans.Rollback()
 		return nil, err
@@ -391,7 +381,7 @@ func (mh *MemberHandler) getAllUsers() ([]Member, error) {
 	ans := []Member{}
 	for res.Next() {
 		m := Member{}
-		res.Scan(&m.Id, &m.FIO, &m.Entry_Date, &m.Email)
+		res.Scan(&m.Id, &m.FIO, &m.Entry_Date, &m.Email, &m.User_level)
 		ans = append(ans, m)
 	}
 
@@ -399,15 +389,36 @@ func (mh *MemberHandler) getAllUsers() ([]Member, error) {
 	return ans, nil
 }
 
-func (mh *MemberHandler) userList(users []Member) template.HTML {
+func (mh *MemberHandler) userList(users []Member, currentUser uint32) template.HTML {
 	var rowsHTML strings.Builder
 	rowsHTML.WriteString(`<ul class="list-group">`)
+	htmlRow := ""
 	for _, user := range users {
-		rowsHTML.WriteString(fmt.Sprintf(`	
-		<li class="list-group-item">
-		%s   <button onclick="deleteEvent('%d')" type="button" style=" margin-bottom: 4px;" class="btn btn-link">Выгнать</button>
-		</li>
-		%s`, user.FIO, user.Id, "\n"))
+
+		switch user.User_level {
+
+		case "admin":
+			if user.Id == int(currentUser) {
+				htmlRow = fmt.Sprintf(`	
+				<li class="list-group-item">
+				%s
+				</li>%s`, user.FIO, "\n")
+				break
+			}
+			htmlRow = fmt.Sprintf(`	
+			<li class="list-group-item">
+			%s <button onclick="changeLevel('%d',-1)" type="button" style=" margin-bottom: 4px;" class="btn btn-link">Убрать права администратора</button> <button onclick="deleteUser('%d')" type="button" style=" margin-bottom: 4px;" class="btn btn-link">Выгнать</button>
+			</li>%s`, user.FIO, user.Id, user.Id, "\n")
+
+		case "user":
+			htmlRow = fmt.Sprintf(`	
+			<li class="list-group-item">
+			%s <button onclick="changeLevel('%d',1)" type="button" style=" margin-bottom: 4px;" class="btn btn-link">Сделать администратором</button> <button onclick="deleteUser('%d')" type="button" style=" margin-bottom: 4px;" class="btn btn-link">Выгнать</button>
+			</li>%s`, user.FIO, user.Id, user.Id, "\n")
+		}
+
+		rowsHTML.WriteString(htmlRow)
+
 	}
 	rowsHTML.WriteString(`</ul>`)
 	return template.HTML(rowsHTML.String())
@@ -431,7 +442,7 @@ func (mh *MemberHandler) UsersList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := map[string]interface{}{
-		"UserList": mh.userList(users),
+		"UserList": mh.userList(users, sess.UserID),
 		"IsAdmin":  sess.IsAdmin,
 	}
 
@@ -478,4 +489,55 @@ func (mh *MemberHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		httputils.RespJSONError(w, http.StatusMethodNotAllowed, nil, "bad uid")
 		return
 	}
+}
+
+func (mh *MemberHandler) ChangeLevel(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		httputils.RespJSONError(w, http.StatusMethodNotAllowed, nil, "bad method")
+		return
+
+	}
+	sess, _ := sessions.SessionFromContext(r.Context())
+	if !sess.IsAdmin {
+		httputils.RespJSONError(w, http.StatusInternalServerError, nil, "internal")
+		return
+	}
+	uid, err := strconv.ParseUint(r.FormValue("uid"), 10, 32)
+	if err != nil {
+		httputils.RespJSONError(w, http.StatusInternalServerError, nil, "bad uid")
+		return
+	}
+	vote, err := strconv.Atoi(r.FormValue("vote"))
+	if err != nil {
+		httputils.RespJSONError(w, http.StatusMethodNotAllowed, nil, "bad vote")
+		return
+	}
+	err = mh.updateLevel(uint32(uid), vote)
+	if err != nil {
+		httputils.RespJSONError(w, http.StatusMethodNotAllowed, nil, "bad uid")
+		return
+	}
+}
+
+func (mh *MemberHandler) updateLevel(uid uint32, vote int) error {
+	trans, err := mh.DB.Begin()
+	if err != nil {
+		trans.Rollback()
+		return err
+	}
+
+	newLevel := ""
+	if vote > 0 {
+		newLevel = "admin"
+	} else {
+		newLevel = "user"
+	}
+	res := -1
+	err = trans.QueryRow("update member set level = $1 where id = $2 RETURNING 1;", newLevel, uid).Scan(&res)
+	if err != nil {
+		trans.Rollback()
+		return err
+	}
+	trans.Commit()
+	return nil
 }

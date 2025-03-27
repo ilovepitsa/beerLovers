@@ -6,12 +6,19 @@
     <meta http-equiv="X-UA-Compatible" content="IE=9">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Любители пива</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+  
     <link href="/static/css/font-awesome.min.css" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
   </head>
   <body>
-    
+  <script>0</script>      
+ 
+
+
     {{ template "navbar" .IsAdmin}}
     <br>
     <div class="container-fluid">
@@ -33,11 +40,129 @@
       <a class="lead pull-right" href="/events/create">Создать мероприятие</a>
     {{end}}
     </div><br><br>
+
     <div class="container-fluid" style="justify-content: space-evenly; justify-items: end; ">
       {{.Rows}}
+
+      <!-- <script type="text/javascript">
+      
+        $(document).ready(function(){
+            $('.modal').modal('show');
+        });
+      </script> -->
+      
     </div> 
-    
-    <script src="/static/js/jquery-2.1.1.min.js"></script>
-    <script src="/static/js/bootstrap.min.js"></script>
+    <div class="modal fade" id="leaveFeedback" tabindex="-1" role="dialog" aria-labelledby="leaveFeedbackModal" aria-hidden="true">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="leaveFeedbackLabel">Новый отзыв</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form id="feedbackForm">
+              <div class="form-group">
+                <label for="messageText" class="col-form-label">Отзыв:</label>
+                <textarea class="form-control" id="messageText"></textarea>
+              </div>
+              <div class="form-group">
+                <label for="messagePhoto" class="col-form-label">Фото:</label>
+                <input id="messagePhoto" type="file" class="form-control" name="messagePhoto">
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Отменить</button>
+            <button onclick="leaveFeedback(this)" id="FeedbackSubmitButton" type="button" class="btn btn-primary" data-whatever="">Оставить отзыв</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="text/javascript">
+      $('#leaveFeedback').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget); // Button that triggered the modal
+        var event_name = button.data('whatever'); 
+        var event_id = button.data('eventid');
+        var subButton = document.getElementById('FeedbackSubmitButton');
+        subButton.dataset.event_id = event_id;
+        
+        var modal = $(this)
+        modal.find('.modal-title').text('Оставить отзыв на "' + event_name+'"')
+      })
+    </script>
+    <div class="modal fade" id="showFeedbacks" tabindex="-1" role="dialog" aria-labelledby="showFeedbacksModal" aria-hidden="true">
+      <div class="modal-dialog modal-lg" role="document"></div>
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="leaveFeedbackLabel">Отзывы</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div id="reviewList" class="modal-body container-fluid">
+            
+          </div>
+         
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Закрыть</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="text/javascript">
+      $('#showFeedbacks').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget); // Button that triggered the modal
+        var event_name = button.data('whatever'); 
+        var event_id = button.data('eventid');
+
+        var modal = $(this)
+        modal.find('.modal-title').text('Отзывы на "' + event_name +'"')
+
+        var request = new XMLHttpRequest();
+        request.open('GET','/api/v1/event/review?eid='+event_id, true);
+        
+        request.onload = function() {
+          var resp = JSON.parse(request.responseText);
+          if (resp.error) {
+            console.log("get review error ", resp.err)
+          }
+
+          var modelBody = document.getElementById('reviewList')
+          modelBody.innerHTML = ""
+          resp.body.reviews.forEach(elem => {
+            // console.log(elem.Review)
+            NodeReviewer = `
+              <span> ${elem.Reviewer} </span>
+            `;
+
+            NodeReview = `
+            <p> ${elem.Review} </p>
+            `
+
+            var NodeHeader = document.createElement('div');
+            NodeHeader.className = "card-header";
+            NodeHeader.innerHTML = NodeReviewer;
+
+            var NodeBody = document.createElement('div');
+            NodeBody.className = "card-body";
+            NodeBody.innerHTML = NodeReview;
+
+            var NodeR = document.createElement('div');
+            NodeR.appendChild(NodeHeader)
+            NodeR.appendChild(NodeBody)
+
+
+
+            modelBody.appendChild(NodeR)
+          });
+          console.log()
+        }
+
+        request.send();
+
+      })
+    </script>
   </body>
 </html>

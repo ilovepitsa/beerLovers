@@ -10,17 +10,22 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
+	"github.com/disintegration/imaging"
 	"github.com/ilovepitsa/beerLovers/pkg/sessions"
+	httputils "github.com/ilovepitsa/beerLovers/pkg/uitls/httpUtils"
 	randstring "github.com/ilovepitsa/beerLovers/pkg/uitls/randString"
 )
 
 type Beer struct {
-	Name     string
-	Producer string
-	BeerType string
-	Url      string
+	Id         uint32
+	Name       string
+	Producer   string
+	BeerType   string
+	Url        string
+	IsFavorite bool
 }
 
 type BeerHandler struct {
@@ -45,7 +50,7 @@ func (bh *BeerHandler) formatTableList(beer []Beer) template.HTML {
 			if i != 0 {
 				strB.WriteString("</div><br>")
 			}
-			strB.WriteString("<div class='row '>")
+			strB.WriteString("<div class='row'>")
 		}
 		strB.WriteString("<div class='col-sm-auto' style='max-width: max-content;'>")
 		tmpl := bh.Tmpls.Lookup("beer.card.html")
@@ -69,17 +74,17 @@ func (bh *BeerHandler) List(w http.ResponseWriter, r *http.Request) {
 		log.Println("Event handler cant get session: ", err)
 		http.Error(w, "cant get session", http.StatusInternalServerError)
 	}
-	beers, err := bh.getBeer()
+	beers, err := bh.getBeer(sess.UserID)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, fmt.Sprintf("Get beer error: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
+	log.Println(beers)
 	input := map[string]interface{}{
 		"IsAdmin": sess.IsAdmin,
 		"Rows":    bh.formatTableList(beers),
 	}
-
 	err = tmpl.Execute(w, input)
 	if err != nil {
 		log.Println(err)
@@ -156,9 +161,9 @@ func (bh *BeerHandler) AddBeer(w http.ResponseWriter, r *http.Request) {
 	name := r.PostFormValue("beer_name")
 	producer := r.PostFormValue("producer")
 	beer_type := r.PostFormValue("beer_types")
-	log.Println("Beer type: ", beer_type)
+	// log.Println("Beer name: ", name)
 
-	md5Sum, err := saveFile(uploadData)
+	md5Sum, err := SaveFile(uploadData, true)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("cant save file %v", err), http.StatusInternalServerError)
 		return
@@ -204,7 +209,7 @@ func (bh *BeerHandler) saveBeer(b Beer) error {
 	return nil
 }
 
-func saveFile(in io.Reader) (string, error) {
+func SaveFile(in io.Reader, isResize bool) (string, error) {
 	tmpName := randstring.RandStringRunes(32)
 
 	tmpFile := "./images/" + tmpName + ".jpg"
@@ -229,17 +234,40 @@ func saveFile(in io.Reader) (string, error) {
 		return "", nil
 	}
 
-	return md5Sum, nil
+	if !isResize {
+		return realFile, nil
+	}
+
+	srcImage, err := imaging.Open(realFile)
+	if err != nil {
+		return "", fmt.Errorf("failed to open image: %v", err)
+	}
+	resizedPath := "./images/" + md5Sum + "_res" + ".jpg"
+	dstImageFill := imaging.Fill(srcImage, 150, 200, imaging.Center, imaging.Lanczos)
+	err = imaging.Save(dstImageFill, resizedPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to save image: %v", err)
+	}
+	return md5Sum + "_res", nil
 }
 
-func (bh *BeerHandler) getBeer() ([]Beer, error) {
+func (bh *BeerHandler) getBeer(uid uint32) ([]Beer, error) {
 	trans, err := bh.DB.Begin()
 	if err != nil {
 		trans.Rollback()
 		return nil, err
 	}
 
-	res, err := trans.Query("select b.name, b.producer, bt.type_name, b.photo_url from beer as b, beer_type as bt where b.beer_type = bt.id;")
+	res, err := trans.Query(`
+	select b.id, b.name, b.producer, bt.type_name, b.photo_url,
+                case
+                        when fb.member_id = $1 then true
+                        else false
+                end as IsFavorite  
+        from beer as b 
+        left join favorite_beer as fb on b.id = fb.beer_id and fb.member_id = $1
+        inner join beer_type as bt on b.beer_type = bt.id;
+		`, uid)
 	if err != nil {
 		trans.Rollback()
 		return nil, err
@@ -248,7 +276,7 @@ func (bh *BeerHandler) getBeer() ([]Beer, error) {
 	beers := []Beer{}
 	for res.Next() {
 		beer := Beer{}
-		err = res.Scan(&beer.Name, &beer.Producer, &beer.BeerType, &beer.Url)
+		err = res.Scan(&beer.Id, &beer.Name, &beer.Producer, &beer.BeerType, &beer.Url, &beer.IsFavorite)
 		if err != nil {
 			log.Println(err)
 		}
@@ -256,4 +284,48 @@ func (bh *BeerHandler) getBeer() ([]Beer, error) {
 	}
 
 	return beers, nil
+}
+
+func (bh *BeerHandler) MakeFavorite(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		httputils.RespJSONError(w, http.StatusMethodNotAllowed, nil, "bad method")
+		return
+	}
+	sess, _ := sessions.SessionFromContext(r.Context())
+	id, err := strconv.ParseUint(r.FormValue("id"), 10, 32)
+	if err != nil {
+		httputils.RespJSONError(w, http.StatusInternalServerError, nil, "internal")
+		return
+	}
+	vote, err := strconv.Atoi(r.FormValue("vote"))
+	if err != nil {
+		httputils.RespJSONError(w, http.StatusInternalServerError, nil, "internal")
+		return
+	}
+	err = bh.makeFavorite(uint32(id), vote, sess.UserID)
+	if err != nil {
+		httputils.RespJSONError(w, http.StatusInternalServerError, nil, "internal")
+		return
+	}
+}
+
+func (bh *BeerHandler) makeFavorite(bid uint32, vote int, uid uint32) error {
+	trans, err := bh.DB.Begin()
+	if err != nil {
+		trans.Rollback()
+		return err
+	}
+	log.Println(fmt.Printf("%d %d %d", bid, vote, uid))
+	if vote >= 0 {
+		_, err = trans.Exec(`insert into favorite_beer (member_id, beer_id) values ($1, $2) ON CONFLICT (member_id, beer_id) DO NOTHING`, uid, bid)
+	} else {
+		_, err = trans.Exec(`delete from favorite_beer where beer_id = $1 and member_id = $2`, bid, uid)
+	}
+
+	if err != nil {
+		trans.Rollback()
+		return err
+	}
+	trans.Commit()
+	return nil
 }

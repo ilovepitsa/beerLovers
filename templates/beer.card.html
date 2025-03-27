@@ -1,13 +1,15 @@
-<div class="card text-white bg-dark mb-3" style="max-width: 300px;">
+<script src="/static/js/list.js"></script>
+<div class="card text-white bg-dark " style=" width: 320px; max-width: 320px; height: 200px; max-height: 200px;">
     <div class="row no-gutters">
         <div class="col-md-4">
-            <img src="/images/{{.Url}}.jpg" class="card-img" />
+            <img src="/images/{{.Url}}.jpg" class="card-img"  style="width: 120px; max-width: 120px; height: 198px; max-height: 198px;"/>
         </div>
         <div class="col-md-8">
             <div class="card-body">
                 <h5 class="card-title">{{.Name}}</h5>
                 <p class="card-text">{{.Producer}}</p>
                 <p class="card-text">{{.BeerType}}</p>
+                <button onclick="makeFavorite(this)" data-id="{{.Id}}" class="btn btn-sm {{ if .IsFavorite}} btn-danger {{else}} btn-primary {{end}}">{{ if .IsFavorite}}Любимое{{else}}Добавить в любимое{{end}}</button>
             </div>
         </div>
     </div>

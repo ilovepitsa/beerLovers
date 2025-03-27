@@ -12,13 +12,14 @@ import (
 	"github.com/ilovepitsa/beerLovers/pkg/event"
 	"github.com/ilovepitsa/beerLovers/pkg/index"
 	"github.com/ilovepitsa/beerLovers/pkg/member"
+	"github.com/ilovepitsa/beerLovers/pkg/reports"
 	"github.com/ilovepitsa/beerLovers/pkg/sessions"
 	"github.com/ilovepitsa/beerLovers/pkg/template"
 	_ "github.com/lib/pq"
 )
 
 func main() {
-	connStr := "host=localhost port=5433 user=nikita password=12345 dbname=beer_lovers_party sslmode=disable"
+	connStr := "host=localhost port=5432 user=nikita password=12345 dbname=beer_lovers_party sslmode=disable"
 	// connectDB := "user=nikita port=5432 password=12345 dbname=beer_lovers_party sslmode=disable host=localhost"
 
 	db, err := sql.Open("postgres", connStr)
@@ -33,6 +34,7 @@ func main() {
 	mh := member.NewMemberHandler(db, tmpls, sm)
 	bh := beer.NewBeerHandler(db, tmpls, sm)
 	eh := event.NewEventHander(db, tmpls, sm)
+	rh := reports.NewReportHandler(db, sm)
 
 	router := mux.NewRouter()
 	router.HandleFunc("/", index.Index)
@@ -47,9 +49,13 @@ func main() {
 	router.HandleFunc("/users/", mh.UsersList)
 	router.HandleFunc("/api/v1/user/balance", mh.Balance)
 	router.HandleFunc("/api/v1/user/delete", mh.DeleteUser)
+	router.HandleFunc("/api/v1/user/changeLevel", mh.ChangeLevel) // /api/v1/reports/beer_favorite
 	router.HandleFunc("/api/v1/event/delete", eh.DeleteEvent)
+	router.HandleFunc("/api/v1/event/review", eh.Review)
 	router.HandleFunc("/beer/", bh.List)
+	router.HandleFunc("/beer/make_favorite", bh.MakeFavorite)
 	router.HandleFunc("/beer/create", bh.AddBeer)
+	router.HandleFunc("/api/v1/reports/beer_favorite", rh.BeerFavoriteReport)
 
 	http.Handle("/", middleware.AuthMiddleware(sm, router))
 	imageHandler := http.StripPrefix(
@@ -68,5 +74,6 @@ func main() {
 	})
 
 	log.Println("Server starts: ", config.Address)
-	http.ListenAndServe(config.Address, nil)
+	err = http.ListenAndServe(config.Address, nil)
+	log.Println(err)
 }

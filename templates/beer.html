@@ -11,12 +11,13 @@
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
   </head>
   <body>
-    
+    <script src="/static/js/list.js"></script>
     {{ template "navbar" .IsAdmin }}
     <br>
-    <div class="container-fluid">
+    <div class="d-inline container-fluid">
     {{ if .IsAdmin }}
-      <a class="lead pull-right" href="/beer/create">Добавить пиво</a>
+      <button class="pull-right p-2 btn btn-lg btn-link" onclick="getBeerFavoriteReport()">Отчет по предпочтениям</button>
+      <a class="lead pull-right p-2" href="/beer/create">Добавить пиво</a>
     {{end}}
     </div>
     <br><br>
